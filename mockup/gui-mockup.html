@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ANON · GTD — GUI mockup</title>
+<style>
+  :root{
+    --bg:#0E0F12; --panel:#14161B; --panel2:#1B1E24; --field:#12141A;
+    --line:#2C3038; --text:#E8EAEE; --dim:#8A919E;
+    --accent:#5AC8A0; --danger:#E25858; --warn:#E4B04A; --purple:#7C5CFF;
+    --radius:12px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    width:1020px; background:#07080A; color:var(--text);
+    font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:13px; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{display:flex; gap:28px; padding:24px; align-items:flex-start}
+
+  /* ───────── phone ───────── */
+  .phone{
+    width:392px; height:792px; background:var(--bg); border:1px solid #24272E;
+    border-radius:26px; overflow:hidden; position:relative;
+    box-shadow:0 24px 60px rgba(0,0,0,.55);
+    display:flex; flex-direction:column;
+  }
+  .statusbar{
+    height:22px; display:flex; align-items:center; justify-content:space-between;
+    padding:0 16px; font-size:10px; color:var(--dim); background:#0A0B0E; flex:none;
+  }
+  .statusbar b{color:#B9BFC9;font-weight:600}
+
+  .head{
+    flex:none; display:flex; align-items:center; gap:8px; padding:10px 12px 8px;
+    background:var(--panel); border-bottom:1px solid var(--line);
+  }
+  .brand{font-weight:700; letter-spacing:.2px; color:var(--accent); font-size:13px}
+  .ver{font-size:10px; color:var(--dim); margin-left:2px}
+  .spacer{flex:1}
+  .hbtn{
+    width:26px;height:24px;border-radius:7px;border:1px solid var(--line);
+    background:var(--panel2); color:var(--dim); font-size:12px; line-height:1;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+  }
+  .hbtn.close{color:var(--danger)}
+
+  /* live strip (our addition) */
+  .live{
+    flex:none; padding:8px 12px 9px; background:linear-gradient(180deg,#101216,#0E0F12);
+    border-bottom:1px solid var(--line); font-size:11px; line-height:1.5;
+  }
+  .live .row1{display:flex; align-items:center; gap:8px}
+  .pill{
+    font-size:10px; font-weight:700; letter-spacing:.4px; padding:2px 7px; border-radius:99px;
+    background:var(--panel2); color:var(--dim); border:1px solid var(--line);
+  }
+  .pill.rec{background:rgba(226,88,88,.14); color:#F08A8A; border-color:rgba(226,88,88,.35)}
+  .pill.play{background:rgba(90,200,160,.13); color:var(--accent); border-color:rgba(90,200,160,.35)}
+  .meta{color:var(--dim)}
+  .meta b{color:#C9CFD8; font-weight:600}
+
+  /* tabs */
+  .tabs{
+    flex:none; display:flex; gap:6px; padding:8px 10px; overflow-x:auto;
+    background:var(--bg); border-bottom:1px solid var(--line); scrollbar-width:none;
+  }
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{
+    flex:none; padding:7px 11px; border-radius:9px; background:var(--panel2);
+    color:#B7BDC7; font-size:12px; font-weight:600; cursor:pointer; border:1px solid transparent;
+    white-space:nowrap;
+  }
+  .tab.on{background:var(--accent); color:#0B0D10; border-color:var(--accent)}
+
+  .body{flex:1; overflow-y:auto; padding:10px 12px 16px; scrollbar-width:thin; scrollbar-color:#2C3038 transparent}
+  .body::-webkit-scrollbar{width:5px}
+  .body::-webkit-scrollbar-thumb{background:#2C3038;border-radius:99px}
+  .page{display:none}
+  .page.on{display:block}
+
+  .sec{margin:12px 0 6px; font-size:10px; letter-spacing:1.1px; text-transform:uppercase; color:#6E7683; font-weight:700}
+  .sec:first-child{margin-top:2px}
+
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:10px 11px; margin-bottom:8px}
+
+  .ctl{display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px dashed #21252C}
+  .ctl:last-child{border-bottom:0; padding-bottom:1px}
+  .ctl .lbl{flex:1; font-size:12.5px; color:#DFE3E9}
+  .ctl .lbl small{display:block; color:#6E7683; font-size:10.5px; margin-top:1px}
+
+  .sw{width:38px;height:21px;border-radius:99px;background:#2C3038;position:relative;cursor:pointer;flex:none;transition:.15s}
+  .sw::after{content:"";position:absolute;top:2.5px;left:2.5px;width:16px;height:16px;border-radius:50%;background:#8A919E;transition:.15s}
+  .sw.on{background:rgba(90,200,160,.28)}
+  .sw.on::after{left:19.5px;background:var(--accent)}
+  .sw.danger.on{background:rgba(226,88,88,.30)}
+  .sw.danger.on::after{background:var(--danger)}
+
+  .slider{display:flex;align-items:center;gap:8px}
+  .slider input{width:132px;accent-color:var(--accent)}
+  .slider .val{font-variant-numeric:tabular-nums;color:#C9CFD8;font-size:11.5px;min-width:52px;text-align:right}
+
+  .inp{
+    width:100%; background:var(--field); border:1px solid var(--line); border-radius:9px;
+    color:#D8DDE4; padding:8px 10px; font-size:12px; outline:none;
+  }
+  .inp::placeholder{color:#5F6772}
+
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;
+    padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);
+    color:#DDE2E9;font-size:12px;font-weight:600;cursor:pointer;
+  }
+  .btn.accent{background:var(--accent); color:#0B0D10; border-color:var(--accent)}
+  .btn.warn{background:rgba(228,176,74,.14); color:var(--warn); border-color:rgba(228,176,74,.35)}
+  .btn.danger{background:rgba(226,88,88,.14); color:#F08A8A; border-color:rgba(226,88,88,.35)}
+  .btn.block{width:100%}
+  .btnrow{display:flex;gap:8px;flex-wrap:wrap}
+
+  .recbtn{
+    width:100%; padding:16px; border-radius:14px; border:1px solid var(--accent);
+    background:var(--accent); color:#0B0D10; font-weight:800; font-size:14px; letter-spacing:.3px;
+    cursor:pointer; display:flex;align-items:center;justify-content:center;gap:9px;
+  }
+  .recbtn.rec{background:var(--danger); border-color:var(--danger); color:#fff}
+
+  .chip{font-size:9px;font-weight:800;letter-spacing:.5px;padding:2px 5px;border-radius:5px;
+    background:rgba(90,200,160,.14);color:var(--accent);border:1px solid rgba(90,200,160,.30);
+    margin-left:6px;vertical-align:1px}
+  .chip.p{background:rgba(124,92,255,.14);color:#A992FF;border-color:rgba(124,92,255,.32)}
+
+  /* macro rows */
+  .mrow{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);
+        border-radius:10px;padding:8px 9px;margin-bottom:7px}
+  .mrow .info{flex:1;min-width:0}
+  .mrow .nm{font-size:12.5px;font-weight:700;color:#E6EAEF;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mrow .sub{font-size:10px;color:#727A87;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mini{width:26px;height:24px;border-radius:7px;background:#20242B;border:1px solid var(--line);
+        color:#AEB5C0;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .mini.on{color:var(--warn);border-color:rgba(228,176,74,.4)}
+  .mini.go{color:var(--accent);border-color:rgba(90,200,160,.4)}
+  .mini.del{color:#F08A8A;border-color:rgba(226,88,88,.35)}
+
+  .empty{font-size:10.5px;color:#6E7683;line-height:1.6;background:#111318;border:1px dashed #2A2E36;
+         border-radius:10px;padding:9px 10px;white-space:pre-line}
+
+  /* floating bits during recording */
+  .mini-bar{
+    position:absolute; left:14px; top:74px; background:#1B1E24; border:1px solid var(--line);
+    color:var(--accent); border-radius:99px; padding:6px 12px; font-size:11px; font-weight:700;
+    display:none; align-items:center; gap:7px; box-shadow:0 8px 20px rgba(0,0,0,.5);
+  }
+  .mini-bar.show{display:flex}
+  .stop-pill{
+    position:absolute; left:14px; top:112px; background:var(--danger); color:#fff; border-radius:99px;
+    padding:7px 14px; font-size:11.5px; font-weight:800; display:none; box-shadow:0 8px 20px rgba(0,0,0,.5);
+  }
+  .stop-pill.show{display:block}
+
+  /* ───────── right column ───────── */
+  .side{width:520px; padding-top:6px}
+  h1{font-size:17px;margin:0 0 4px;letter-spacing:.2px}
+  h1 span{color:var(--accent)}
+  .lead{color:var(--dim);font-size:12px;line-height:1.6;margin:0 0 14px}
+  h2{font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:#7C8492;margin:18px 0 8px}
+  table{width:100%;border-collapse:collapse;font-size:11.5px}
+  th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #1E2229;vertical-align:top}
+  th{color:#6E7683;font-weight:700;font-size:10px;letter-spacing:.6px;text-transform:uppercase}
+  td.n{color:#C9CFD8}
+  .yes{color:var(--accent);font-weight:700}
+  .no{color:#7A828E}
+  .new{color:var(--warn);font-weight:700}
+  .note{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;
+        font-size:11.5px;color:#B7BEC9;line-height:1.65;margin-top:10px}
+  .note b{color:#E6EAEF}
+  .kbd{background:#20242B;border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:10.5px;color:#C9CFD8}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ═══════════ PHONE ═══════════ -->
+  <div class="phone">
+    <div class="statusbar"><span>9:41</span><span>GTD · 4G · 82%</span><span><b>ANON</b></span></div>
+
+    <div class="head">
+      <span class="brand">ANON · GTD</span><span class="ver">v1.1.0</span>
+      <span class="spacer"></span>
+      <div class="hbtn" title="ringkas">—</div>
+      <div class="hbtn close" title="sembunyikan">×</div>
+    </div>
+
+    <div class="live">
+      <div class="row1">
+        <span class="pill" id="statePill">IDLE</span>
+        <span class="meta">wave <b id="wv">7</b>/25 · T+<b id="tt">00:00</b> · steps <b id="stp">0</b></span>
+      </div>
+      <div class="meta" style="margin-top:3px">
+        Impossible · Classic · <b>map_dojo</b> · x3 · <span style="color:#7C8492">attr:MapId · attr:Difficulty</span>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab" data-p="match">Match</div>
+      <div class="tab" data-p="auto">Auto Mode</div>
+      <div class="tab on" data-p="macro">Macro</div>
+      <div class="tab" data-p="anti">Anti Ban</div>
+      <div class="tab" data-p="hook">Webhook</div>
+    </div>
+
+    <div class="body" id="scroller">
+
+      <!-- ── MACRO ── -->
+      <div class="page on" id="p-macro">
+        <div class="sec">Record / Play</div>
+        <div class="card">
+          <button class="recbtn" id="recBtn">● RECORD</button>
+          <div class="ctl" style="margin-top:10px">
+            <div class="lbl">Wave-anchored replay<span class="chip">STABIL</span>
+              <small>setiap step = (ronde, dt sejak ronde mulai) — bukan jam dinding</small></div>
+            <div class="sw on" onclick="tg(this)"></div>
+          </div>
+          <div class="ctl">
+            <div class="lbl">Verify placement<span class="chip">STABIL</span>
+              <small>cek unit benar-benar mendarat · retry 2×</small></div>
+            <div class="sw on" onclick="tg(this)"></div>
+          </div>
+          <div class="ctl">
+            <div class="lbl">Speed mismatch<small>macro x3 diputar di x1 → skala, bukan asal jalan</small></div>
+            <div class="sw" onclick="tg(this)"></div>
+          </div>
+          <div class="ctl">
+            <div class="lbl">Play Macro</div>
+            <div class="sw" onclick="tg(this)"></div>
+          </div>
+          <div class="ctl">
+            <div class="lbl">Teleport Before Placing</div>
+            <div class="sw" onclick="tg(this)"></div>
+          </div>
+          <div class="ctl">
+            <div class="lbl">Loops</div>
+            <div class="slider"><input type="range" min="1" max="5" value="1" oninput="this.nextElementSibling.textContent=(this.value==5?'∞':this.value)+'×'"><span class="val">1×</span></div>
+          </div>
+        </div>
+
+        <div class="sec">Macro History<span class="chip">STABIL</span></div>
+        <div class="card">
+          <input class="inp" placeholder="filter nama / mode / map" style="margin-bottom:8px">
+          <div class="btnrow" style="margin-bottom:9px">
+            <div class="btn" style="padding:6px 9px;font-size:11px">pinned only: OFF</div>
+            <div class="btn" style="padding:6px 9px;font-size:11px">refresh</div>
+          </div>
+
+          <div class="mrow">
+            <div class="info">
+              <div class="nm">impossible-dojo-3x</div>
+              <div class="sub">Impossible · Classic · map_dojo · x3 · 25 waves · 143 steps</div>
+            </div>
+            <div class="mini on">★</div><div class="mini go">GO</div><div class="mini">NM</div><div class="mini">EXP</div>
+          </div>
+          <div class="mrow">
+            <div class="info">
+              <div class="nm">night-run-alpha</div>
+              <div class="sub">Hard · Endless · map_night · x2 · ∞ · 88 steps</div>
+            </div>
+            <div class="mini">★</div><div class="mini go">GO</div><div class="mini">NM</div><div class="mini">EXP</div>
+          </div>
+          <div class="mrow">
+            <div class="info">
+              <div class="nm">test1 <span style="color:var(--warn);font-size:9.5px">MEMORY ONLY</span></div>
+              <div class="sub">Easy · Classic · map_dojo · x1 · 25 waves · 12 steps</div>
+            </div>
+            <div class="mini">★</div><div class="mini go">GO</div><div class="mini">NM</div><div class="mini">EXP</div>
+          </div>
+        </div>
+
+        <div class="sec">Files</div>
+        <div class="card">
+          <div class="ctl"><div class="lbl">Selected Macro</div><div class="inp" style="width:150px">impossible-dojo-3x ▾</div></div>
+          <div class="ctl"><div class="lbl">New File Name</div><div class="inp" style="width:150px">/</div></div>
+          <div class="btnrow" style="margin-top:8px">
+            <div class="btn">Create Macro File</div>
+          </div>
+        </div>
+
+        <div class="sec">Import / Export</div>
+        <div class="card">
+          <input class="inp" placeholder="macro link atau JSON / base64">
+          <div class="btnrow" style="margin-top:8px">
+            <div class="btn accent">Import</div>
+            <div class="btn">Export base64</div>
+            <div class="btn">Copy report</div>
+          </div>
+        </div>
+
+        <div class="sec">Diagnostics<span class="chip">STABIL</span></div>
+        <div class="card">
+          <div class="empty">file api     : yes
+folder       : ANON_GTD/macros
+files on disk: 3
+index entries: 3 (1 memory only)
+profile      : ANON_GTD/profile.json</div>
+          <div class="btnrow" style="margin-top:9px">
+            <div class="btn accent">RUN DISCOVERY</div>
+            <div class="btn">PIN ANCHOR</div>
+            <div class="btn warn">MARK WAVE NOW</div>
+            <div class="btn">RESCAN DISK</div>
+            <div class="btn warn">CALIBRATE TAP</div>
+          </div>
+          <input class="inp" placeholder="override: mode=Impossible, speed=3, map=Dojo" style="margin-top:9px">
+        </div>
+      </div>
+
+      <!-- ── MATCH ── -->
+      <div class="page" id="p-match">
+        <div class="sec">Match</div>
+        <div class="card">
+          <div class="ctl"><div class="lbl">Auto Skip Cutscene</div><div class="sw" onclick="tg(this)"></div></div>
+          <div class="ctl"><div class="lbl">Auto Skip Wave</div><div class="sw" onclick="tg(this)"></div></div>
+          <div class="ctl"><div class="lbl">Auto 2x Speed</div><div class="sw" onclick="tg(this)"></div></div>
+          <div class="ctl"><div class="lbl">Auto 3x Speed</div><div class="sw" onclick="tg(this)"></div></div>
+          <div class="ctl"><div class="lbl">Auto Ability</div><div class="sw" onclick="tg(this)"></div></div>
+          <div class="ctl"><div class="lbl">Auto Replay</div><div class="sw" onclick="tg(this)"></div></div>
+          <div class="ctl"><div class="lbl">Auto Return</div><div class="sw" onclick="tg(this)"></div></div>
+        </div>
+        <div class="sec">Player</div>
+        <div class="card">
+          <div class="ctl"><div class="lbl">Auto Follow Enemy</div><div class="sw" onclick="tg(this)"></div></div>
+          <div class="ctl"><div class="lbl">Auto Beggar</div><div class="sw" onclick="tg(this)"></div></div>
+        </div>
+        <div class="sec">Performance</div>
+        <div class="card">
+          <div class="ctl"><div class="lbl">Disable 3D Rendering</div><div class="sw" onclick="tg(this)"></div></div>
+          <div class="ctl"><div class="lbl">Enable Low Performance</div><div class="sw" onclick="tg(this)"></div></div>
+          <div class="ctl"><div class="lbl">Clean Old Maps</div><div class="sw" onclick="tg(this)"></div></div>
+        </div>
+      </div>
+
+      <!-- ── AUTO MODE ── -->
+      <div class="page" id="p-auto">
+        <div class="sec">Lobby</div>
+        <div class="card">
+          <div class="ctl"><div class="lbl">Difficulty</div><div class="inp" style="width:150px">Impossible ▾</div></div>
+          <div class="ctl"><div class="lbl">Auto Difficulty</div><div class="sw" onclick="tg(this)"></div></div>
+        </div>
+        <div class="sec">Auto Mode (farm)</div>
+        <div class="card">
+          <div class="ctl"><div class="lbl">Auto Replay<small>pakai macro terpilih, bukan pola acak</small></div><div class="sw" onclick="tg(this)"></div></div>
+          <div class="ctl"><div class="lbl">Auto Return</div><div class="sw" onclick="tg(this)"></div></div>
+          <div class="ctl"><div class="lbl">Idle guard (anti-AFK)</div><div class="sw on" onclick="tg(this)"></div></div>
+        </div>
+      </div>
+
+      <!-- ── ANTI BAN ── -->
+      <div class="page" id="p-anti">
+        <div class="sec">Anti Ban</div>
+        <div class="card">
+          <div class="ctl"><div class="lbl">Placement Spread</div>
+            <div class="slider"><input type="range" min="0" max="20" value="7" oninput="this.nextElementSibling.textContent=(this.value/10).toFixed(1)+' studs'"><span class="val">0.7 studs</span></div></div>
+          <div class="ctl"><div class="lbl">Micro Teleport Radius</div>
+            <div class="slider"><input type="range" min="0" max="8" value="3" oninput="this.nextElementSibling.textContent=this.value+' studs'"><span class="val">3 studs</span></div></div>
+          <div class="ctl"><div class="lbl">Auto Walk</div><div class="sw" onclick="tg(this)"></div></div>
+          <div class="ctl"><div class="lbl">Walk Radius</div>
+            <div class="slider"><input type="range" min="2" max="15" value="7" oninput="this.nextElementSibling.textContent=this.value+' studs'"><span class="val">7 studs</span></div></div>
+          <div class="ctl"><div class="lbl">Walk Interval (max)</div>
+            <div class="slider"><input type="range" min="5" max="30" value="18" oninput="this.nextElementSibling.textContent=this.value+'s'"><span class="val">18s</span></div></div>
+        </div>
+        <div class="sec">Humanizer<span class="chip">STABIL</span></div>
+        <div class="card">
+          <div class="ctl"><div class="lbl">Position jitter<small>tap tidak identik sampai pixel</small></div>
+            <div class="slider"><input type="range" min="0" max="4" value="2" oninput="this.nextElementSibling.textContent=this.value+'px'"><span class="val">2px</span></div></div>
+          <div class="ctl"><div class="lbl">Time jitter<small>delay tidak frame-perfect</small></div>
+            <div class="slider"><input type="range" min="0" max="50" value="10" oninput="this.nextElementSibling.textContent=this.value+'ms'"><span class="val">10ms</span></div></div>
+          <div class="ctl"><div class="lbl">Random pause tiap N loop</div><div class="sw on" onclick="tg(this)"></div></div>
+        </div>
+        <div class="sec">Lobby Return</div>
+        <div class="card">
+          <div class="ctl"><div class="lbl">Matches Before Lobby Return</div><div class="inp" style="width:90px">1</div></div>
+          <div class="ctl"><div class="lbl">Auto Return After X Matches</div><div class="sw" onclick="tg(this)"></div></div>
+        </div>
+      </div>
+
+      <!-- ── WEBHOOK ── -->
+      <div class="page" id="p-hook">
+        <div class="sec">Discord Webhook</div>
+        <div class="card">
+          <input class="inp" placeholder="https://discord.com/api/webhooks/...">
+          <div class="btnrow" style="margin-top:8px"><div class="btn">Test Send Webhook</div></div>
+          <div class="ctl" style="margin-top:6px"><div class="lbl">Send Webhook On Match End</div><div class="sw" onclick="tg(this)"></div></div>
+          <div class="ctl"><div class="lbl">Discord User ID</div><div class="inp" style="width:130px">1234567890</div></div>
+          <div class="ctl"><div class="lbl">Tag di Setiap Akhir Match</div><div class="sw" onclick="tg(this)"></div></div>
+          <div class="ctl"><div class="lbl">Tag Hanya Saat Defeat</div><div class="sw" onclick="tg(this)"></div></div>
+        </div>
+        <div class="sec">Target</div>
+        <div class="card">
+          <div class="ctl"><div class="lbl">Kirim Saat Target Tercapai</div><div class="sw" onclick="tg(this)"></div></div>
+          <div class="ctl"><div class="lbl">Target Seeds (sesi)</div><div class="inp" style="width:110px">0 = mati</div></div>
+          <div class="ctl"><div class="lbl">Target (event currency) (sesi)</div><div class="inp" style="width:110px">0 = mati</div></div>
+          <div class="ctl"><div class="lbl">Tag Saat Target Tercapai</div><div class="sw on" onclick="tg(this)"></div></div>
+          <div class="btnrow" style="margin-top:8px"><div class="btn">Test Tag</div></div>
+        </div>
+        <div class="sec">Ringkasan Berkala</div>
+        <div class="card">
+          <div class="ctl"><div class="lbl">Kirim Ringkasan</div><div class="sw" onclick="tg(this)"></div></div>
+          <div class="ctl"><div class="lbl">Interval</div>
+            <div class="slider"><input type="range" min="10" max="240" value="30" oninput="this.nextElementSibling.textContent=this.value+' mnt'"><span class="val">30 mnt</span></div></div>
+          <div class="btnrow" style="margin-top:8px"><div class="btn">Kirim Ringkasan Sekarang</div></div>
+        </div>
+        <div class="sec">Dashboard API</div>
+        <div class="card">
+          <div class="ctl"><div class="lbl">API Key</div><div class="inp" style="width:140px">secret key</div></div>
+          <div class="ctl"><div class="lbl">Heartbeat Interval</div>
+            <div class="slider"><input type="range" min="10" max="120" value="30" oninput="this.nextElementSibling.textContent=this.value+'s'"><span class="val">30s</span></div></div>
+          <div class="ctl"><div class="lbl">Enable Telemetry<small>default MATI — statistik tidak dikirim ke siapa pun</small></div><div class="sw" onclick="tg(this)"></div></div>
+          <div class="btnrow" style="margin-top:8px"><div class="btn">Test Send</div></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="mini-bar" id="miniBar">ANON ● REC <span id="miniN">0</span> ▲</div>
+    <div class="stop-pill" id="stopPill">■ STOP</div>
+  </div>
+
+  <!-- ═══════════ SIDE ═══════════ -->
+  <div class="side">
+    <h1>Mockup GUI — <span>ANON GTD</span> v1.1.0</h1>
+    <p class="lead">
+      Menu & fitur disamakan dengan <b>Ard Hub v2.5.5</b> (5 tab: Match · Auto Mode · Macro · Anti Ban · Webhook,
+      isi section dan label persis). Bedanya di titik berat: tab <b>Macro</b> dibuka pertama dan diisi mesin
+      recorder yang stabil, sementara kontrol farm tetap ada sebagai menu — bukan sebagai mesin utama.
+      Klik tab / toggle / slider di kiri, dan tekan <b>RECORD</b> buat lihat state rekaman.
+    </p>
+
+    <h2>Paritas menu dengan Ard Hub</h2>
+    <table>
+      <tr><th>Section (Ard Hub)</th><th>Di mockup ini</th><th>Status</th></tr>
+      <tr><td class="n">Match · Match</td><td>7 toggle: Skip Cutscene, Skip Wave, 2x, 3x, Ability, Replay, Return</td><td class="yes">sama</td></tr>
+      <tr><td class="n">Match · Player</td><td>Auto Follow Enemy, Auto Beggar</td><td class="yes">sama</td></tr>
+      <tr><td class="n">Match · Performance</td><td>Disable 3D, Low Performance, Clean Old Maps</td><td class="yes">sama</td></tr>
+      <tr><td class="n">Auto Mode · Lobby</td><td>Difficulty (dropdown), Auto Difficulty</td><td class="yes">sama</td></tr>
+      <tr><td class="n">Macro · Files</td><td>Selected Macro, New File Name, Create Macro File</td><td class="yes">sama</td></tr>
+      <tr><td class="n">Macro · Import / Export</td><td>Macro Link or JSON + import/export</td><td class="yes">sama</td></tr>
+      <tr><td class="n">Macro · Record / Play</td><td>Record Macro, Play Macro, Teleport Before Placing</td><td class="yes">sama</td></tr>
+      <tr><td class="n">Anti Ban · Anti Ban</td><td>Placement Spread, Micro TP, Auto Walk, Walk Radius, Walk Interval</td><td class="yes">sama</td></tr>
+      <tr><td class="n">Anti Ban · Lobby Return</td><td>Matches Before Return, Auto Return After X</td><td class="yes">sama</td></tr>
+      <tr><td class="n">Webhook · Discord Webhook</td><td>Link, Test, On Match End, User ID, 2 tag toggle</td><td class="yes">sama</td></tr>
+      <tr><td class="n">Webhook · Target</td><td>Target seeds/currency, tag target, Test Tag</td><td class="yes">sama</td></tr>
+      <tr><td class="n">Webhook · Ringkasan</td><td>Kirim Ringkasan, Interval, Kirim Sekarang</td><td class="yes">sama</td></tr>
+      <tr><td class="n">Webhook · Dashboard API</td><td>API Key, Heartbeat, Test Send, Enable Telemetry</td><td class="yes">sama</td></tr>
+    </table>
+
+    <h2>Yang kita tambah (titik berat: recorder stabil)</h2>
+    <table>
+      <tr><th>Tambahan</th><th>Kenapa</th></tr>
+      <tr><td class="new">Live strip di atas tab</td><td>wave · T+ sejak ronde · steps · stempel konteks (mode/diff/map/speed + sumbernya). Ard Hub tidak punya status live.</td></tr>
+      <tr><td class="new">Macro History (bukan cuma dropdown)</td><td>daftar dengan stempel lengkap, PIN, GO, rename, export, delete — plus filter & pinned-only.</td></tr>
+      <tr><td class="new">Wave-anchored replay · Verify placement · Speed mismatch</td><td>tiga penjaga supaya replay tidak meleset: jangkar per ronde, verifikasi unit mendarat, dan skala/penolakan kalau speed beda.</td></tr>
+      <tr><td class="new">Humanizer (jitter px + ms)</td><td>Ard Hub punya “Placement Spread” saja; kita jitter posisi & waktu.</td></tr>
+      <tr><td class="new">Diagnostics</td><td>file api, folder, file di disk, isi index, memory-only, RESCAN DISK, COPY REPORT — penjawab “udah rekam tapi gak muncul”.</td></tr>
+      <tr><td class="new">Panel ringkas otomatis saat record</td><td>di HP panel kebuka nutupin layar; bar mini `ANON ● REC n ▲` + pill STOP.</td></tr>
+    </table>
+
+    <div class="note">
+      <b>Catatan jujur soal paritas:</b> menu & label disamakan, tapi <i>mesin</i>-nya beda.
+      Ard Hub menembak remote (<span class="kbd">PlaceUnit</span>, <span class="kbd">SkipWave</span>, <span class="kbd">ChangeTickSpeed</span>)
+      supaya bisa farming otomatis. Kalau kita ikut itu, “recorder yang stabil” jadi tidak relevan — dan
+      permukaan deteksinya jauh lebih lebar. Usulan: menu tetap sama, tapi aksi farm (Auto Mode, Skip Wave, Speed)
+      dijalankan lewat <b>replay input</b> macro kita, bukan remote. Tinggal lu putuskan boleh atau tidak.
+    </div>
+  </div>
+</div>
+
+<script>
+  function tg(el){ el.classList.toggle('on'); }
+
+  document.querySelectorAll('.tab').forEach(function(t){
+    t.onclick = function(){
+      document.querySelectorAll('.tab').forEach(function(x){ x.classList.remove('on'); });
+      document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('on'); });
+      t.classList.add('on');
+      document.getElementById('p-' + t.dataset.p).classList.add('on');
+      document.getElementById('scroller').scrollTop = 0;
+    };
+  });
+
+  var rec = false, t0 = 0, steps = 0, timer = null;
+  var btn = document.getElementById('recBtn');
+  var pill = document.getElementById('statePill');
+  var mini = document.getElementById('miniBar');
+  var stop = document.getElementById('stopPill');
+
+  function pad(n){ return String(n).padStart(2,'0'); }
+
+  btn.onclick = function(){
+    rec = !rec;
+    if (rec){
+      t0 = Date.now(); steps = 0;
+      btn.classList.add('rec'); btn.textContent = '■ STOP & SAVE';
+      pill.className = 'pill rec'; pill.textContent = 'REC';
+      mini.classList.add('show'); stop.classList.add('show');
+      document.getElementById('miniN').textContent = '0';
+      document.getElementById('stp').textContent = '0';
+      timer = setInterval(function(){
+        var s = Math.floor((Date.now()-t0)/1000);
+        document.getElementById('tt').textContent = pad(Math.floor(s/60)) + ':' + pad(s%60);
+        if (Math.random() > 0.55){
+          steps++;
+          document.getElementById('stp').textContent = steps;
+          document.getElementById('miniN').textContent = steps;
+        }
+      }, 340);
+    } else {
+      clearInterval(timer);
+      btn.classList.remove('rec'); btn.textContent = '● RECORD';
+      pill.className = 'pill'; pill.textContent = 'IDLE';
+      mini.classList.remove('show'); stop.classList.remove('show');
+      document.getElementById('tt').textContent = '00:00';
+    }
+  };
+</script>
+</body>
+</html>
