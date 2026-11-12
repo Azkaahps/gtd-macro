@@ -218,7 +218,7 @@ jalan tapi hilang begitu keluar game. Saran: export (base64) macro penting sebel
 | Hapus satu macro | MACROS → `DEL` |
 | Lihat jumlah macro | SETUP → tombol **DROP MACROS** (nampilin jumlah + folder) |
 | Update script ke versi baru | **execute ulang baris loadstring-nya** — Loader ambil versi terbaru, gak perlu paste Main.lua. Loader nge-print ke console Delta: `loader v1.0.1 · main v1.0.1 · source: github raw` — dari situ lu tahu versi mana yang jalan. |
-| GitHub masih nyajiin versi lama | cache raw `~5 menit` setelah push | gak masalah: loader **nerima versi terbaru yang dia punya** — kalau raw-nya masih lama tapi cache HP lu udah baru, dia pakai cache dan bilang di console (`github still serves vX, kept newer cached vY`). Tunggu 5 menit lalu execute lagi, atau pakai mirror jsDelivr. |
+| GitHub masih nyajiin versi lama | cache raw `~5 menit` setelah push | gak masalah: loader **nerima versi terbaru yang dia punya** — kalau raw-nya masih lama tapi cache HP lu udah baru, dia pakai cache dan bilang di console (`github still serves vX, kept newer cached vY`). Tunggu 5 menit lalu execute lagi. |
 | Paksa gak pakai cache | tambahkan `?v=` (udah otomatis dilakukan loader) atau hapus `ANON_GTD/Main.lua` |
 | Bersihin total | keluar game → hapus folder `ANON_GTD` dari file manager Delta |
 

@@ -47,9 +47,11 @@ Repo: <https://github.com/Azkaahps/gtd-macro> · the loader's fallback mirror is
 The repo must stay **public**: `raw.githubusercontent.com` serves private files only with a token, and an
 executor's `game:HttpGet` has none — a private repo cannot be loaded by a loadstring at all.
 
-Why the loader indirection: raw.githubusercontent caches for ~5 min, so the loader adds `?v=<unixtime>`,
-falls back to **jsDelivr** (`https://cdn.jsdelivr.net/gh/<user>/<repo>@main/Main.lua`) when raw is blocked or
-rate limited, and keeps a copy in `ANON_GTD/Main.lua` so a GitHub outage still boots.
+Why the loader indirection: **raw.github is the fresh path and is what you want** — it lags a push by a few
+minutes, so the loader adds `?v=<unixtime>`, keeps the copy on disk, and **refuses to run a build older than
+the one it already has** (a stale download must never downgrade you). **jsDelivr is a last-resort mirror
+only**: it caches a branch for up to ~12 hours, so it can be well behind — it is used solely when raw github
+is unreachable, and the version actually loaded is printed to the executor console:
 
 Requires `game:HttpGet` + `loadstring` on the executor — if either is missing, web loading is impossible by
 definition (then just paste `Main.lua` straight into the executor box).
