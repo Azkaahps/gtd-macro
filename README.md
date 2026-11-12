@@ -19,6 +19,7 @@ Change the mode or the speed and it tells you before it wastes your seeds.
 | `tools/mock_harness.lua` | offline test harness — mocked Roblox surface, runs the full boot→record→save→play chain. |
 | `tools/dist_check.lua` | proves the loadstring path: fetches the live raw + jsDelivr payloads, diffs them byte for byte against local, compiles them like the loader does. |
 | `README.md` | this. |
+| `PANDUAN-DELTA-ANDROID.md` | panduan pemakaian lengkap di HP Android + Delta (bahasa Indonesia). |
 
 ## 2. Hosting on GitHub raw (yes, it works — these are the rules)
 
