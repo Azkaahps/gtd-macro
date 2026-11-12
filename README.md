@@ -17,6 +17,7 @@ Change the mode or the speed and it tells you before it wastes your seeds.
 | `Loader.lua` | the one-line entry point you paste in Delta. Fetches + caches + runs Main. |
 | `Main.lua` | the whole script (~2900 lines): probe, recorder, player, UI, store. |
 | `tools/mock_harness.lua` | offline test harness — mocked Roblox surface, runs the full boot→record→save→play chain. |
+| `tools/dist_check.lua` | proves the loadstring path: fetches the live raw + jsDelivr payloads, diffs them byte for byte against local, compiles them like the loader does. |
 | `README.md` | this. |
 
 ## 2. Hosting on GitHub raw (yes, it works — these are the rules)
@@ -31,6 +32,18 @@ Change the mode or the speed and it tells you before it wastes your seeds.
 ```lua
 loadstring(game:HttpGet("https://raw.githubusercontent.com/<user>/<repo>/refs/heads/main/Loader.lua"))()
 ```
+
+This repo is already hosted and verified:
+
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Azkaahps/gtd-macro/refs/heads/main/Loader.lua"))()
+```
+
+Repo: <https://github.com/Azkaahps/gtd-macro> · the loader's fallback mirror is
+`https://cdn.jsdelivr.net/gh/Azkaahps/gtd-macro@main/Main.lua`.
+
+The repo must stay **public**: `raw.githubusercontent.com` serves private files only with a token, and an
+executor's `game:HttpGet` has none — a private repo cannot be loaded by a loadstring at all.
 
 Why the loader indirection: raw.githubusercontent caches for ~5 min, so the loader adds `?v=<unixtime>`,
 falls back to **jsDelivr** (`https://cdn.jsdelivr.net/gh/<user>/<repo>@main/Main.lua`) when raw is blocked or
@@ -129,6 +142,7 @@ ANON_GTD/
 ```
 luajit tools/mock_harness.lua        # bare executor  — 65 checks, 0 failures
 luajit tools/mock_harness.lua spy    # with hookmetamethod — +4 spy checks, 0 failures
+luajit tools/dist_check.lua          # live github raw + jsDelivr — 17 checks, 0 failures
 ```
 
 Covered: context detection (mode/difficulty/speed/waves/countdown/seeds/map_sig/loadout), remote scan,
