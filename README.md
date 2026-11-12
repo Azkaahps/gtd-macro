@@ -109,6 +109,26 @@ would produce a script that dies on the next patch. Instead:
 
 The profile (`ANON_GTD/profile.json`) keeps the pins, so once discovery is done it is instant on every later run.
 
+## 5. Verified internals (v1.1.0) — no more guessing for the common case
+
+Two independent public hubs for this same game turned out to be **plaintext** (Ard Hub v2.5.5, 154 KB; and a
+placement-tracker + in-game-UI pair from `Tseting-nil/Garden-Tower-Defense-script`). Reading them yielded the
+game's real internal names, so the probe now tries these **first** and keeps the generic scanning as fallback
+(GDT patches weekly — treat every name as movable):
+
+| What | Verified source | Notes |
+|---|---|---|
+| run context | a folder in `workspace` carrying attributes | `GameStartTime`, `GameEndTime`, `DifficultyVoteEnd`, `BaseHP_1`, `RunId`, `Config`, `Origin`; legacy builds kept them directly on `workspace` |
+| map / night | `MapId`, `Night`, or the `Config` JSON (`mapId`, `night`) | beats the workspace-layout hash |
+| difficulty | `Difficulty` attribute as a raw id | `dif_insane` → Impossible, `dif_normal` → Normal, … |
+| header text | one label: `Map: X \| Difficulty: Y \| Modifier: Z` | parsed as a second source |
+| run start | `GameStartTime` (unix seconds) | a change = **a new run began** → wave 1 anchored from the server's own clock, no label race |
+| towers & enemies | one `Entities` folder | every placed unit has a numeric `ID` attribute = its server gameId; enemies are named `enemy_*`; wrapped "moves around" units keep the `ID` on an inner same-name model |
+| remotes | `ReplicatedStorage.RemoteFunctions` (flat, `InvokeServer`) and `RemoteEvents` | `PlaceUnit`, `SellUnit`, `SkipWave`, `PlaceDifficultyVote`, `ActivateUnitAbility`, `SellAll`, `BuyPlot`, `ChangeTickSpeed`, `SetAutoSkip`, `Entity_ChangeTargetingMode` |
+
+The recorder still replays **input**, it does not fire those remotes — they are listed because they are the
+cheapest reliable way to *observe* that something happened.
+
 ## 6. Stored macro format
 
 ```
@@ -145,8 +165,8 @@ ANON_GTD/
 
 ```
 luajit tools/loader_check.lua        # loader freshness + fallbacks — 22 checks, 0 failures
-luajit tools/mock_harness.lua        # bare executor  — 97 checks, 0 failures
-luajit tools/mock_harness.lua spy    # with hookmetamethod — 101 checks, 0 failures
+luajit tools/mock_harness.lua        # bare executor  — 114 checks, 0 failures
+luajit tools/mock_harness.lua spy    # with hookmetamethod — 118 checks, 0 failures
 luajit tools/dist_check.lua          # live github raw + jsDelivr — 15 checks, 0 failures
 ```
 

@@ -1184,6 +1184,78 @@ check("diagnose reports files, entries, memory-only",
     counts.files >= 2 and counts.entries >= 2 and counts.memory_only >= 1, json_encode(counts))
 print("  " .. diag_text:gsub("\n", "\n  "))
 
+print("\n[verified internals]")
+-- build a run context folder the way the real game does: attributes + Entities
+local ctxf = new_instance("Folder", "8f2c1d0e-run")
+ctxf.Parent = WS
+ctxf:SetAttribute("GameStartTime", os.time() - 120)
+ctxf:SetAttribute("RunId", "8f2c1d0e")
+ctxf:SetAttribute("MapId", "map_dojo")
+ctxf:SetAttribute("Difficulty", "dif_insane")
+ctxf:SetAttribute("Night", true)
+ctxf:SetAttribute("Config", '{"mapId":"map_dojo","night":true}')
+local ents = new_instance("Folder", "Entities")
+ents.Parent = ctxf
+
+check("run context folder found", API.probe.run_context() == ctxf)
+check("attribute readable", type(API.probe.attr("GameStartTime")) == "number")
+check("config json parsed", API.probe.config_field("mapId") == "map_dojo", API.probe.config_field("mapId"))
+
+local vctx = API.probe.detect_context()
+check("difficulty mapped from raw id", vctx.difficulty == "Impossible", vctx.difficulty)
+check("raw difficulty id kept", vctx.difficulty_id == "dif_insane", vctx.difficulty_id)
+check("map from attribute", vctx.map == "map_dojo", vctx.map)
+check("night flag", vctx.night == true, vctx.night)
+check("entities folder resolved", vctx.entities ~= nil and vctx.entities:find("Entities", 1, true) ~= nil)
+check("run start time stamped", type(vctx.game_start_time) == "number" and vctx.game_elapsed >= 100,
+    vctx.game_elapsed)
+check("source names the attribute", tostring(vctx.sources.difficulty):find("attr", 1, true) ~= nil,
+    vctx.sources.difficulty)
+
+-- entity identity: tower vs enemy, plain and wrapped
+local tower_m = new_instance("Model", "unit_bloodvine")
+tower_m.Parent = ents
+tower_m:SetAttribute("ID", 4242)
+local enemy_m = new_instance("Model", "enemy_aphid")
+enemy_m.Parent = ents
+local wrapped = new_instance("Model", "unit_soulshard")
+wrapped.Parent = ents
+local wrapped_inner = new_instance("Model", "unit_soulshard")
+wrapped_inner.Parent = wrapped
+wrapped_inner:SetAttribute("ID", 77)
+
+check("entity id read", API.probe.entity_id(tower_m) == 4242)
+check("wrapped unit id read from the inner model", API.probe.entity_id(wrapped) == 77)
+check("enemy recognised", API.probe.is_enemy(enemy_m) == true and API.probe.is_enemy(tower_m) == false)
+check("pick_unit prefers the tower over the enemy", (function()
+    local u = API.probe.pick_unit({ enemy_m, tower_m })
+    return u ~= nil and u.name == "unit_bloodvine" and u.id == 4242
+end)(), (function()
+    local u = API.probe.pick_unit({ enemy_m, tower_m })
+    return u and (tostring(u.name) .. "/" .. tostring(u.id))
+end)())
+
+-- the header line the in-game UI prints
+local hdr = new_instance("TextLabel", "RunHeader")
+hdr.Visible = true
+hdr.Text = "Map: Dojo | Difficulty: Insane | Modifier: Night"
+hdr.Parent = PG
+local hm, hd, hmo = API.probe.header_map_line()
+check("header line parsed", hm == "Dojo" and hd == "Insane" and hmo == "Night",
+    tostring(hm) .. "/" .. tostring(hd) .. "/" .. tostring(hmo))
+
+print("\n[new run anchor]")
+API.config.auto_collapse_on_record = true
+API.recorder.start()
+pump(0.3)
+local gst_before = API.state.last_game_start
+ctxf:SetAttribute("GameStartTime", os.time() + 30)   -- a fresh run just started
+pump(0.6)
+check("new run detected from GameStartTime", API.state.wave == 1, API.state.wave)
+check("anchor moved to the new run", (API.state.last_game_start or 0) > (gst_before or 0),
+    tostring(gst_before) .. " -> " .. tostring(API.state.last_game_start))
+API.recorder.discard()
+
 print("\n=====================================")
 print(string.format("FAILURES: %d", failures))
 print("=====================================")

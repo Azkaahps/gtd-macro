@@ -1,4 +1,4 @@
-### PASS A: bare executor
+### PASS A
 boot ok, api keys: yes
 
 [context]
@@ -143,11 +143,32 @@ boot ok, api keys: yes
   index entries: 4 (1 memory only)
   profile      : ANON_GTD/profile.json
 
+[verified internals]
+  PASS  run context folder found
+  PASS  attribute readable
+  PASS  config json parsed
+  PASS  difficulty mapped from raw id
+  PASS  raw difficulty id kept
+  PASS  map from attribute
+  PASS  night flag
+  PASS  entities folder resolved
+  PASS  run start time stamped
+  PASS  source names the attribute
+  PASS  entity id read
+  PASS  wrapped unit id read from the inner model
+  PASS  enemy recognised
+  PASS  pick_unit prefers the tower over the enemy
+  PASS  header line parsed
+
+[new run anchor]
+  PASS  new run detected from GameStartTime
+  PASS  anchor moved to the new run
+
 =====================================
 FAILURES: 0
 =====================================
 
-### PASS B: with hookmetamethod
+### PASS B
 == harness variant: executor WITH hookmetamethod (remote spy path) ==
 boot ok, api keys: yes
 
@@ -299,6 +320,27 @@ boot ok, api keys: yes
   files on disk: 3
   index entries: 4 (1 memory only)
   profile      : ANON_GTD/profile.json
+
+[verified internals]
+  PASS  run context folder found
+  PASS  attribute readable
+  PASS  config json parsed
+  PASS  difficulty mapped from raw id
+  PASS  raw difficulty id kept
+  PASS  map from attribute
+  PASS  night flag
+  PASS  entities folder resolved
+  PASS  run start time stamped
+  PASS  source names the attribute
+  PASS  entity id read
+  PASS  wrapped unit id read from the inner model
+  PASS  enemy recognised
+  PASS  pick_unit prefers the tower over the enemy
+  PASS  header line parsed
+
+[new run anchor]
+  PASS  new run detected from GameStartTime
+  PASS  anchor moved to the new run
 
 =====================================
 FAILURES: 0

@@ -103,6 +103,10 @@ Semua ini **harus di dalam map/match**, bukan di lobby — mode, difficulty, map
 sudah di dalam run.
 
 ### 4.1 SETUP → RUN DISCOVERY
+Sejak v1.1.0, mode/map/difficulty/night/speed **dibaca dari state server game itu sendiri** (atribut
+`GameStartTime`, `MapId`, `Difficulty`, `Night`, `Config` + folder `Entities`), jadi biasanya langsung benar
+tanpa override. Label-scan tetap jalan sebagai cadangan kalau GDT nge-rename sesuatu di patch Sabtu.
+
 Yang gue cari di report-nya:
 
 | Baris | Bagus | Kalau salah |

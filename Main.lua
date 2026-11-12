@@ -49,7 +49,7 @@ local unpack = table.unpack or unpack
 --==============================================================================
 
 local CONFIG = {
-    version        = "1.0.2",
+    version        = "1.1.0",
     root_dir       = "ANON_GTD",
     place_whitelist= { [108533757090220] = "Garden Tower Defense", [123516946198836] = "Garden Tower Defense (2)" },
 
@@ -758,6 +758,147 @@ function PROBE.map_signature()
 end
 
 --==============================================================================
+-- VERIFIED GDT INTERNALS
+-- Not guesses. These names were read out of two independent public hubs for this
+-- exact game (Ard Hub v2.5.5 — plaintext, 154 KB; and a placement tracker /
+-- in-game UI pair from Tseting-nil/Garden-Tower-Defense-script, plaintext).
+-- They are tried FIRST and the generic probes stay as the fallback, because GDT
+-- ships a patch every Saturday and any of these can move.
+--==============================================================================
+
+PROBE.KNOWN = {
+    remote_functions  = "RemoteFunctions",  -- flat folder, everything is InvokeServer
+    remote_events     = "RemoteEvents",
+    entities_folder   = "Entities",         -- towers + enemies; enemies are named "enemy_*"
+    place_unit        = "PlaceUnit",        -- InvokeServer(unitId, cframe-ish)
+    sell_unit         = "SellUnit",
+    skip_wave         = "SkipWave",
+    ability           = "ActivateUnitAbility",
+    sell_all          = "SellAll",
+    speed_remote      = "ChangeTickSpeed",  -- RemoteEvent, FireServer(speed)
+    autoskip_remote   = "SetAutoSkip",
+    targeting_remote  = "Entity_ChangeTargetingMode",
+}
+
+-- the run context is a folder in workspace carrying the run as attributes; legacy
+-- builds kept the same attributes directly on workspace
+function PROBE.run_context()
+    local ok, kids = pcall(function() return Workspace:GetChildren() end)
+    if not ok or not kids then return nil end
+    local best, best_score = nil, 0
+    for _, c in ipairs(kids) do
+        if c:IsA("Folder") or c:IsA("Model") then
+            local score = 0
+            local okg = pcall(function()
+                if c:GetAttribute("GameStartTime") ~= nil then score = score + 3 end
+                if c:GetAttribute("RunId") ~= nil then score = score + 2 end
+                if c:GetAttribute("Config") ~= nil then score = score + 2 end
+                if c:FindFirstChild(PROBE.KNOWN.entities_folder) then score = score + 2 end
+            end)
+            if okg and score > best_score then best, best_score = c, score end
+        end
+    end
+    if best and best_score >= 2 then return best end
+    return nil
+end
+
+-- attribute lookup: run context first, then the legacy workspace location
+function PROBE.attr(name)
+    local ctx = PROBE.run_context()
+    if ctx then
+        local ok, v = pcall(function() return ctx:GetAttribute(name) end)
+        if ok and v ~= nil then return v, ctx:GetFullName() .. " attr:" .. name end
+    end
+    local ok2, wv = pcall(function() return Workspace:GetAttribute(name) end)
+    if ok2 and wv ~= nil then return wv, "Workspace attr:" .. name end
+    return nil, nil
+end
+
+-- Config is a JSON string attribute on the run context: { mapId = ..., night = ... }
+function PROBE.config_field(key)
+    local raw = PROBE.attr("Config")
+    if type(raw) ~= "string" or raw == "" then return nil end
+    local ok, t = pcall(function() return HttpService:JSONDecode(raw) end)
+    if ok and type(t) == "table" then return t[key] end
+    return nil
+end
+
+-- raw difficulty ids the game uses in its attributes
+local DIFF_ID = {
+    dif_easy = "Easy", dif_normal = "Normal", dif_hard = "Hard",
+    dif_insane = "Impossible", dif_nightmare = "Nightmare", dif_extreme = "Extreme",
+    dif_sandbox = "Sandbox",
+}
+
+function PROBE.difficulty_from_attr()
+    local raw = PROBE.attr("Difficulty")
+    if type(raw) ~= "string" or raw == "" then return nil, nil end
+    local mapped = DIFF_ID[string.lower(raw)]
+    if mapped then return mapped, "attr:Difficulty" end
+    return (string.gsub(raw, "^dif_", "")), "attr:Difficulty"
+end
+
+-- towers and enemies live in the same Entities folder; enemies carry the prefix
+function PROBE.entities()
+    local ctx = PROBE.run_context()
+    local f = ctx and ctx:FindFirstChild(PROBE.KNOWN.entities_folder)
+    if not f then
+        local map = Workspace:FindFirstChild("Map")
+        f = map and map:FindFirstChild(PROBE.KNOWN.entities_folder)
+    end
+    if not f then
+        local ok, list = pcall(function() return Workspace:GetDescendants() end)
+        if ok and list then
+            for _, d in ipairs(list) do
+                if d.Name == PROBE.KNOWN.entities_folder and (d:IsA("Folder") or d:IsA("Model")) then
+                    f = d
+                    break
+                end
+            end
+        end
+    end
+    return f
+end
+
+-- every placed unit carries a numeric ID attribute = its server gameId. Wrapped
+-- "moves around" units keep the ID on an inner model with the same name.
+function PROBE.entity_id(model)
+    if not model then return nil end
+    local ok, id = pcall(function() return model:GetAttribute("ID") end)
+    if ok and type(id) == "number" then return id end
+    local okn, name = pcall(function() return model.Name end)
+    if okn and name then
+        local inner = model:FindFirstChild(name)
+        if inner then
+            local ok2, iid = pcall(function() return inner:GetAttribute("ID") end)
+            if ok2 and type(iid) == "number" then return iid end
+        end
+    end
+    return nil
+end
+
+function PROBE.is_enemy(model)
+    if not model then return false end
+    local ok, name = pcall(function() return model.Name end)
+    return ok and name and string.match(name, "^enemy_") ~= nil
+end
+
+-- the in-game header prints one line we can parse: "Map: X | Difficulty: Y | Modifier: Z"
+function PROBE.header_map_line(labels)
+    for _, e in ipairs(labels or PROBE.labels()) do
+        local t = e.text
+        if string.find(t, "Map:", 1, true) then
+            local m, d, mo = string.match(t,
+                "Map:%s*(.-)%s*|%s*Difficulty:%s*(.-)%s*|%s*Modifier:%s*(.-)%s*$")
+            if m and m ~= "" then return m, d, mo, e.path end
+            local m2, d2 = string.match(t, "Map:%s*(.-)%s*|%s*Difficulty:%s*(.-)%s*$")
+            if m2 and m2 ~= "" then return m2, d2, nil, e.path end
+        end
+    end
+    return nil
+end
+
+--==============================================================================
 -- context detection  (the differentiator stamped into every macro)
 --==============================================================================
 
@@ -813,6 +954,70 @@ function PROBE.detect_context()
     local labels = PROBE.labels()
     ctx.label_count = #labels
 
+    -- ── verified game state first ──────────────────────────────────────────────
+    -- attributes beat every label heuristic: they are the server's own values
+    local run_ctx = PROBE.run_context()
+    if run_ctx then
+        ctx.run_context = run_ctx:GetFullName()
+        local okr, rid = pcall(function() return run_ctx:GetAttribute("RunId") end)
+        if okr then ctx.run_id = rid end
+    end
+
+    local gst, gst_src = PROBE.attr("GameStartTime")
+    if type(gst) == "number" and gst > 0 then
+        ctx.game_start_time = gst
+        ctx.game_elapsed = math.max(0, os.time() - gst)
+        ctx.sources.game_start = gst_src
+    end
+
+    local diff_attr, diff_src = PROBE.difficulty_from_attr()
+    if diff_attr then
+        ctx.difficulty = diff_attr
+        ctx.difficulty_id = PROBE.attr("Difficulty")
+        ctx.sources.difficulty = diff_src
+    end
+
+    local night = PROBE.attr("Night")
+    if night == nil then night = PROBE.config_field("night") end
+    if night ~= nil then ctx.night = night and true or false end
+
+    local header_map, header_diff, header_mod, header_path = PROBE.header_map_line(labels)
+    if header_map then
+        if not ctx.map then
+            ctx.map = header_map
+            ctx.sources.map = header_path
+        end
+        if not ctx.difficulty and header_diff and header_diff ~= "" then
+            ctx.difficulty = header_diff
+            ctx.sources.difficulty = header_path
+        end
+        if header_mod and header_mod ~= "" and header_mod ~= "None" then
+            ctx.modifier = header_mod
+        end
+    end
+
+    if not ctx.map then
+        local map_attr = PROBE.attr("MapId")
+        if type(map_attr) == "string" and map_attr ~= "" then
+            ctx.map = map_attr
+            ctx.sources.map = "attr:MapId"
+        end
+    end
+    if not ctx.map then
+        local cfg_map = PROBE.config_field("mapId")
+        if type(cfg_map) == "string" and cfg_map ~= "" then
+            ctx.map = cfg_map
+            ctx.sources.map = "config:mapId"
+        end
+    end
+
+    local entities = PROBE.entities()
+    if entities then
+        ctx.entities = entities:GetFullName()
+        local okc, kids = pcall(function() return entities:GetChildren() end)
+        if okc and kids then ctx.entity_count = #kids end
+    end
+
     -- 1) mode / difficulty from labels + attributes
     for _, e in ipairs(labels) do
         local t = e.text
@@ -849,11 +1054,23 @@ function PROBE.detect_context()
             end
         end
     end
-    if best_wave then
+    if best_wave and not ctx.wave_cur then
         ctx.wave_cur   = best_wave.cur
         ctx.wave_total = best_wave.total
         ctx.sources.wave = best_wave.path
         ctx.wave_text = best_wave.text
+    end
+
+    -- attribute fallback when the counter is not on screen
+    if not ctx.wave_cur then
+        for _, k in ipairs({ "Wave", "CurrentWave", "WavesCleared" }) do
+            local v, src = PROBE.attr(k)
+            if type(v) == "number" then
+                ctx.wave_cur = (k == "WavesCleared") and (v + 1) or v
+                ctx.sources.wave = src
+                break
+            end
+        end
     end
 
     -- 3) countdown label (pure number 1..120 sitting near a wave/start label)
@@ -879,7 +1096,7 @@ function PROBE.detect_context()
     -- 4) game speed
     for _, e in ipairs(labels) do
         local t = lower(e.text)
-        if #t <= 6 then
+        if #t <= 6 and not ctx.speed then
             local v = string.match(t, "^x(%d)$") or string.match(t, "^(%d)x$")
             if v then
                 ctx.speed = tonumber(v)
@@ -889,10 +1106,13 @@ function PROBE.detect_context()
     end
     if not ctx.speed then
         local attrs = { PROBE.attributes_of(Workspace), PROBE.attributes_of(ReplicatedStorage) }
+        local rc = PROBE.run_context()
+        if rc then table.insert(attrs, PROBE.attributes_of(rc)) end
         for _, a in ipairs(attrs) do
             for k, v in pairs(a) do
                 local lk = lower(k)
-                if type(v) == "number" and string.find(lk, "speed", 1, true) and v >= 1 and v <= 10 then
+                if type(v) == "number" and v >= 1 and v <= 10
+                    and (string.find(lk, "speed", 1, true) or string.find(lk, "tick", 1, true)) then
                     ctx.speed = v
                     ctx.sources.speed = "attr:" .. k
                 end
@@ -1052,6 +1272,10 @@ function PROBE.pick_unit(list)
             local pname = parent and (parent.Name or "") or ""
             local score = 0
             if contains_any(pname, CLASS_KEYWORDS.unit) then score = score + 3 end
+            -- a numeric ID attribute is the server's own handle for a placed unit
+            if PROBE.entity_id(inst) then score = score + 5 end
+            -- enemies appear in the same folder: never mistake one for a tower
+            if PROBE.is_enemy(inst) then score = score - 12 end
             if parent and parent.Parent then
                 local gp = parent.Parent
                 local gpname = gp.Name or ""
@@ -1066,6 +1290,8 @@ function PROBE.pick_unit(list)
     if not best then return nil end
     local container = best.Parent
     return {
+        inst = best,
+        id = PROBE.entity_id(best),
         name = best.Name,
         path = best:GetFullName(),
         container = container and container:GetFullName() or nil,
@@ -1563,6 +1789,7 @@ local function attribute_tower(step)
         local u = PROBE.pick_unit(list)
         if u then
             step.tower = u.name
+            step.tower_id = u.id
             step.tower_path = u.path
             step.tower_class = u.class
             if u.container then
@@ -1670,16 +1897,39 @@ local function wave_loop()
     if wave_thread_running then return end
     wave_thread_running = true
     while S.recording or S.playing do
+        -- a new run carries its own unix start time: the cleanest "wave 1 just began"
+        -- signal available, and it comes from the server rather than from a label
+        local gst = PROBE.attr("GameStartTime")
+        if type(gst) == "number" and gst > 0 then
+            if type(S.last_game_start) == "number" and gst > S.last_game_start then
+                S.wave = 1
+                S.wave_t0 = U.now()
+                S.wave_prev = { cd = nil, cur = 1 }
+                S.run_started_at = gst
+                -- the label can still show the previous run for a moment: trust the
+                -- server's start time over it for a few seconds
+                S.anchor_grace_until = U.now() + 4
+                if UI_API and UI_API.toast then
+                    UI_API.toast("new run · wave 1 anchored (GameStartTime)")
+                end
+                PLAY.on_wave_start(1)
+            end
+            S.last_game_start = gst
+            S.run_elapsed = math.max(0, os.time() - gst)
+        end
+
         local st = PROBE.wave_state_cheap()
         local started = false
 
-        if st.cur ~= nil then
+        local in_grace = S.anchor_grace_until and U.now() < S.anchor_grace_until
+
+        if st.cur ~= nil and not in_grace then
             if S.wave ~= nil and st.cur ~= S.wave then
                 started = true
             end
             S.wave = st.cur
-            if st.total then S.wave_total = st.total end
         end
+        if st.total then S.wave_total = st.total end
 
         if st.countdown then
             if S.wave_prev.cd and S.wave_prev.cd <= 1 and st.countdown >= 3 then
