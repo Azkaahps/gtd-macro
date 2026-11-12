@@ -1,4 +1,4 @@
-### PASS A: bare executor (no hookmetamethod)
+### PASS A: bare executor
 boot ok, api keys: yes
 
 [context]
@@ -93,11 +93,61 @@ boot ok, api keys: yes
   PASS  profile written to disk
   PASS  macro json files on disk
 
+[ui collapse]
+  PASS  ui handles exported
+  PASS  mini bar lives in the screen gui, not in the panel
+  PASS  minimize button found
+  PASS  close button found
+  PASS  panel collapses to the mini bar
+  PASS  mini bar brings the panel back
+  PASS  close collapses, never kills the ui
+  PASS  restored after close
+  PASS  mini bar counts as our own ui (collapsed)
+  PASS  open panel counts as our own ui
+  PASS  empty space is not our ui
+
+[contrast]
+  PASS  no low contrast text at boot
+  PASS  flipped config buttons
+  PASS  no low contrast text after flipping every toggle
+
+[record: taps that only hit our own panel]
+  PASS  REC.start() collapses the panel for recording
+  PASS  a zero-step save is refused
+  PASS  the reason names the panel
+  PASS  counters saw the tap
+  PASS  counters saw the skip
+  PASS  empty-save reason is exported to the ui
+
+[record: save report]
+  PASS  saved
+  PASS  save report carries the counters
+  PASS  report names the storage
+  PASS  entry is in the history
+  report: diag test · 2 steps (moves 0, keys 0) · taps seen 1 · skipped over panel 0 · storage disk · file api     : yes · folder       : ANON_GTD/macros · files on disk: 2 · index entries: 2 · profile      : ANON_GTD/profile.json
+
+[disk write failure -> memory only]
+  PASS  macro still registered when the disk refuses
+  PASS  entry flagged memory only
+  PASS  still loadable this session
+  PASS  save note mentions memory
+
+[index rebuild from disk]
+  PASS  orphan macro recovered into the index
+  PASS  recovered entry keeps its context stamp
+  PASS  recovered macro is loadable
+  PASS  diagnose reports files, entries, memory-only
+  file api     : yes
+  folder       : ANON_GTD/macros
+  files on disk: 3
+  index entries: 4 (1 memory only)
+  profile      : ANON_GTD/profile.json
+
 =====================================
 FAILURES: 0
 =====================================
 
-### PASS B: executor WITH hookmetamethod (spy path)
+### PASS B: with hookmetamethod
 == harness variant: executor WITH hookmetamethod (remote spy path) ==
 boot ok, api keys: yes
 
@@ -200,6 +250,97 @@ boot ok, api keys: yes
   PASS  args preview captured
   sample: wave, 4, true
 
+[ui collapse]
+  PASS  ui handles exported
+  PASS  mini bar lives in the screen gui, not in the panel
+  PASS  minimize button found
+  PASS  close button found
+  PASS  panel collapses to the mini bar
+  PASS  mini bar brings the panel back
+  PASS  close collapses, never kills the ui
+  PASS  restored after close
+  PASS  mini bar counts as our own ui (collapsed)
+  PASS  open panel counts as our own ui
+  PASS  empty space is not our ui
+
+[contrast]
+  PASS  no low contrast text at boot
+  PASS  flipped config buttons
+  PASS  no low contrast text after flipping every toggle
+
+[record: taps that only hit our own panel]
+  PASS  REC.start() collapses the panel for recording
+  PASS  a zero-step save is refused
+  PASS  the reason names the panel
+  PASS  counters saw the tap
+  PASS  counters saw the skip
+  PASS  empty-save reason is exported to the ui
+
+[record: save report]
+  PASS  saved
+  PASS  save report carries the counters
+  PASS  report names the storage
+  PASS  entry is in the history
+  report: diag test · 2 steps (moves 0, keys 0) · taps seen 1 · skipped over panel 0 · storage disk · file api     : yes · folder       : ANON_GTD/macros · files on disk: 2 · index entries: 2 · profile      : ANON_GTD/profile.json
+
+[disk write failure -> memory only]
+  PASS  macro still registered when the disk refuses
+  PASS  entry flagged memory only
+  PASS  still loadable this session
+  PASS  save note mentions memory
+
+[index rebuild from disk]
+  PASS  orphan macro recovered into the index
+  PASS  recovered entry keeps its context stamp
+  PASS  recovered macro is loadable
+  PASS  diagnose reports files, entries, memory-only
+  file api     : yes
+  folder       : ANON_GTD/macros
+  files on disk: 3
+  index entries: 4 (1 memory only)
+  profile      : ANON_GTD/profile.json
+
 =====================================
 FAILURES: 0
+=====================================
+
+### LOADER
+[A] fresh raw wins, cache gets written
+  PASS  A runs
+  PASS  A returned the payload api
+  PASS  A executed the raw build
+  PASS  A cached the payload
+  PASS  A wrote the version stamp
+
+[B] stale raw must never downgrade a newer cache
+  PASS  B runs
+  PASS  B ran the cached newer build
+  PASS  B kept the cached copy on disk
+  PASS  B said why in the console
+
+[C] github down -> disk cache
+  PASS  C runs
+  PASS  C used the cache
+  PASS  C reported the mirror attempt
+
+[D] nothing reachable and no cache -> hard error
+  PASS  D fails loudly
+  PASS  D error message is actionable
+
+[E] block page -> jsDelivr mirror
+  PASS  E runs
+  PASS  E ran the mirror build
+  PASS  E ignored the html payload
+
+[F] wrong game -> loader refuses
+  PASS  F returns without loading
+  PASS  F did not execute anything
+
+[G] broken live payload -> cached copy still boots
+  PASS  G payload really is broken
+  PASS  G runs
+  PASS  G recovered from the cache
+
+=====================================
+LOADER FAILURES: 0
 =====================================

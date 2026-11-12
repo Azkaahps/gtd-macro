@@ -145,9 +145,9 @@ ANON_GTD/
 
 ```
 luajit tools/loader_check.lua        # loader freshness + fallbacks — 22 checks, 0 failures
-luajit tools/mock_harness.lua        # bare executor  — 79 checks, 0 failures
-luajit tools/mock_harness.lua spy    # with hookmetamethod — 83 checks, 0 failures
-luajit tools/dist_check.lua          # live github raw + jsDelivr — 14 checks, 0 failures
+luajit tools/mock_harness.lua        # bare executor  — 97 checks, 0 failures
+luajit tools/mock_harness.lua spy    # with hookmetamethod — 101 checks, 0 failures
+luajit tools/dist_check.lua          # live github raw + jsDelivr — 15 checks, 0 failures
 ```
 
 Covered: context detection (mode/difficulty/speed/waves/countdown/seeds/map_sig/loadout), remote scan,
@@ -155,7 +155,10 @@ record → 9 steps with world points and per-step wave+dt, save → load → pin
 mismatch detection, playback dispatch (touch / mouse / key routing), **dt accuracy asserted at the 0.3 s /
 1.0 s / 2.1 s marks (no early fire, no late fire)**, speed scale = rec÷now, round alignment when the counter
 is behind the macro's start wave, skip-on-missing-wave, placement verified / failed+retried, remote spy
-logging fired remotes with arg previews, and the store surviving a simulated rejoin.
+logging fired remotes with arg previews, panel collapse/restore, a WCAG contrast audit over every widget
+(and after flipping every toggle), and the whole "recorded but nothing showed up" class:
+a zero-step save refuses with a reason and counters, a refused disk write still registers the macro as
+memory-only, and an orphan macro file on disk is recovered into the index on boot.
 Raw run log is in `harness_out.txt`.
 
 ## 8. Honest limits

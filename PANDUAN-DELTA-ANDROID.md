@@ -138,18 +138,23 @@ kalibrasi.
 ## 5. Rekam macro (1 ronde)
 
 1. Pastikan lagi: HP landscape, notifikasi mati, Delta "no restrictions", layar gak akan ke-lock.
-2. Mulai ronde (wave 1) dulu, baru tekan **RECORD** — atau tekan RECORD tepat sebelum wave mulai. Header REC
-   bakal nunjukin stempel konteks (`Classic · Impossible · Dojo · x3 · waves 3/25`) dan hitungan step.
-3. Lakukan apa yang lu mau diulang, **wajar**, gak usah buru-buru:
+2. Mulai ronde (wave 1) dulu, baru tekan **RECORD**. Panel **otomatis meringkas diri jadi bar kecil**
+   `ANON ● REC <n> ▲` — ini disengaja: kalau panelnya kebuka, dia nutupin layar dan tap yang jatuh di area
+   panel itu **sengaja gak direkam**. Di HP layar kecil, panel kebuka = hampir semua tap ke-skip = rekaman
+   kosong. (Kalau lu mau panel tetap kebuka saat rekam: CONFIG → `auto-collapse on record: OFF`.)
+3. Selesai rekam → tap pill merah **STOP** di kiri atas (atau bar mini → panel → **■ STOP & SAVE**).
+4. Lakukan apa yang lu mau diulang, **wajar**, gak usah buru-buru:
    - place unit (tap ground),
    - upgrade unit (tap unit → tap tombol upgrade),
    - kalau perlu drag/gulir kamera.
    Semua ini kebaca: tap, drag, dan tombol keyboard kalau lu pakai gamepad/keyboard eksternal.
-4. Tekan **STOP & SAVE**. Isi nama (opsional, mis. `impossible-dojo`), atau biarin auto.
-5. Cek di tab **MACROS**: barisnya harus nunjukin stempel lengkap dan `steps` > 5.
+5. Setelah STOP, muncul toast **`Saved: <nama> (N steps)`** dan di bawah tombol RECORD ada baris laporan:
+   `nama · N steps (moves x, keys y) · taps seen n · skipped over panel m · storage disk · file api: yes …`
+   Itu jawaban kalau ada yang aneh — baca baris itu dulu sebelum nanya.
+6. Cek di tab **MACROS**: barisnya harus nunjukin stempel lengkap dan `steps` > 5.
 
-**Catatan penting:** kalau lu tap UI panel kita sendiri, tap itu **tidak** ikut kecatet (sengaja). Jadi
-nyentuh panel di tengah rekaman aman — tapi jangan dipakai buat hal aneh, tetap aja lakuin sesuai gameplay.
+**Kalau lu tap UI panel kita sendiri, tap itu tidak ikut kecatet** (sengaja). Jadi nyentuh panel aman —
+tapi kalau tap-nya jatuh di area panel, tap itu juga gak masuk rekaman. Karena itu panelnya diringkas otomatis.
 
 ## 6. Putar ulang macro
 
@@ -201,7 +206,10 @@ Cara lihat/pindahin: pakai file manager bawaan Delta (kalau ada), atau dari cons
 ```lua
 print(table.concat(listfiles("ANON_GTD/macros"), "\n"))
 print(readfile("ANON_GTD/profile.json"))
-print(#getgenv().ANON_GTD.ui.audit_contrast())   -- 0 = semua tulisan kebaca (kontras)
+print(getgenv().ANON_GTD.ui.audit_contrast())      -- 0 = semua tulisan kebaca (kontras)
+print(getgenv().ANON_GTD.recorder.last_report)     -- apa yang terjadi di save terakhir
+print(getgenv().ANON_GTD.store.diagnose())         -- file api, folder, file di disk, isi index
+getgenv().ANON_GTD.store.rebuild_index()           -- pungut ulang macro dari disk (RESCAN DISK)
 ```
 Console lain yang kepakai:
 ```lua
@@ -216,7 +224,8 @@ jalan tapi hilang begitu keluar game. Saran: export (base64) macro penting sebel
 | Aksi | Cara |
 |---|---|
 | Hapus satu macro | MACROS → `DEL` |
-| Lihat jumlah macro | SETUP → tombol **DROP MACROS** (nampilin jumlah + folder) |
+| Lihat jumlah macro | SETUP → bagian **STORE** (file api, folder, file di disk, isi index) |
+| Macro ada di disk tapi gak muncul di tab | SETUP → **RESCAN DISK** — index dipungut ulang dari file |
 | Update script ke versi baru | **execute ulang baris loadstring-nya** — Loader ambil versi terbaru, gak perlu paste Main.lua. Loader nge-print ke console Delta: `loader v1.0.1 · main v1.0.1 · source: github raw` — dari situ lu tahu versi mana yang jalan. |
 | GitHub masih nyajiin versi lama | cache raw `~5 menit` setelah push | gak masalah: loader **nerima versi terbaru yang dia punya** — kalau raw-nya masih lama tapi cache HP lu udah baru, dia pakai cache dan bilang di console (`github still serves vX, kept newer cached vY`). Tunggu 5 menit lalu execute lagi. |
 | Paksa gak pakai cache | tambahkan `?v=` (udah otomatis dilakukan loader) atau hapus `ANON_GTD/Main.lua` |
@@ -230,6 +239,11 @@ jalan tapi hilang begitu keluar game. Saran: export (base64) macro penting sebel
 | Panel ketutup notch/status bar | posisi awal panel kegeser | geser panel dari header-nya |
 | Panel kekecilan / ke-minimize dan gak ketemu cara balikinnya | — | tap bar kecil **`ANON · GTD ▲`** di kiri atas (sejak v1.0.1 tombol **—** dan **x** sama-sama cuma meringkas, gak pernah bikin panel hilang permanen) |
 | Ada tulisan yang nyatu sama background | kontras | jalankan `print(#getgenv().ANON_GTD.ui.audit_contrast())` — kalau hasilnya bukan 0, kirim daftarnya ke gue |
+| **Udah rekam tapi gak muncul di MACROS** | salah satu dari 4 hal di bawah | baca baris laporan di bawah tombol RECORD, atau `print(getgenv().ANON_GTD.recorder.last_report)` → isinya: berapa tap yang kelihatan, berapa yang ke-skip karena kena panel, dan storage-nya apa |
+| ↳ tap-nya kena area panel saat rekam | panel kebuka nutupin layar | biarin auto-collapse nyala (CONFIG → `auto-collapse on record: ON`) |
+| ↳ storage-nya `memory only` / `file api: NO` | Delta gak kasih akses file | macro tetap ada di sesi ini → langsung **EXP** (export base64) sebelum keluar game |
+| ↳ `files on disk` > 0 tapi `index entries` 0 | index.json hilang/ke-putus saat nulis | **SETUP → RESCAN DISK** (macro di disk dipungut ulang masuk history) |
+| ↳ `taps seen 0` | input gak nyampe ke listener (inject salah klien / UI panel ketutup game) | re-inject Delta, pastikan Roblox-nya jalan dari dalam Delta |
 | Tap replay gak ngefek di tombol game | game cuma nanggepin event `Activated` | CONFIG → `click method: ui` → GO lagi |
 | Unit mendarat di tile sebelah | kamera muter/map beda | pastikan kamera sama posisinya; coba CONFIG → `follow world point: OFF` |
 | Semua aksi nyembur sekaligus | counter wave gak kebaca → mode waktu absolut | SETUP → PIN ANCHOR / MARK WAVE NOW |

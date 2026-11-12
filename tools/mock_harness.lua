@@ -1103,6 +1103,87 @@ check("flipped config buttons", clicked >= 8, clicked)
 report(offenders, "low")
 check("no low contrast text after flipping every toggle", #offenders == 0, #offenders)
 
+--==============================================================================
+-- 13. "recorded but nothing showed up" — the exact class of bug, as regression tests
+--==============================================================================
+
+print("\n[record: taps that only hit our own panel]")
+-- the contrast section clicks every ON/OFF button, so pin the setting the rest of
+-- this section depends on
+API.config.auto_collapse_on_record = true
+-- park the mini bar over the tap point: while recording that is the only widget on
+-- screen, and a tap on our own ui must never become a recorded step
+API.ui.mini.AbsolutePosition = Vector2.new(200, 400)
+API.ui.mini.AbsoluteSize = Vector2.new(400, 400)
+check("REC.start() collapses the panel for recording",
+    (function()
+        local ok = API.recorder.start()
+        return ok == true and API.ui.main.Visible == false and API.ui.mini.Visible == true
+    end)(),
+    string.format("main=%s mini=%s", tostring(API.ui.main.Visible), tostring(API.ui.mini.Visible)))
+pump(0.3)
+fire_input(UIS.InputBegan, 300, 500, "Touch")
+fire_input(UIS.InputEnded, 300, 500, "Touch")
+pump(0.5)
+local m2, err2 = API.recorder.finalize("empty test", false)
+check("a zero-step save is refused", m2 == nil, m2 and (#m2.steps))
+check("the reason names the panel", tostring(err2):find("panel") ~= nil, err2)
+local cnt = API.recorder.counters()
+check("counters saw the tap", (cnt.began or 0) >= 1, cnt.began)
+check("counters saw the skip", (cnt.own_ui or 0) >= 2, cnt.own_ui)
+check("empty-save reason is exported to the ui", API.recorder.last_report ~= nil)
+API.ui.mini.AbsolutePosition = Vector2.new(24, 90)
+API.ui.mini.AbsoluteSize = Vector2.new(140, 26)
+
+print("\n[record: save report]")
+API.recorder.start()
+pump(0.3)
+fire_input(UIS.InputBegan, 700, 200, "Touch")
+fire_input(UIS.InputEnded, 700, 200, "Touch")
+pump(0.6)
+local m3, e3, rep3 = API.recorder.finalize("diag test", false)
+check("saved", m3 ~= nil, tostring(e3))
+check("save report carries the counters", rep3 ~= nil and rep3:find("taps seen") ~= nil, rep3)
+check("report names the storage", rep3 ~= nil and rep3:find("storage") ~= nil)
+check("entry is in the history", API.store.entry_of(m3.id) ~= nil)
+print("  report: " .. tostring(rep3))
+
+print("\n[disk write failure -> memory only]")
+local orig_writefile = env.writefile
+env.writefile = function(p, d)
+    if string.find(p, "macros/", 1, true) then error("simulated: disk full") end
+    return orig_writefile(p, d)
+end
+API.recorder.start()
+pump(0.3)
+fire_input(UIS.InputBegan, 640, 260, "Touch")
+fire_input(UIS.InputEnded, 640, 260, "Touch")
+pump(0.6)
+local m4, e4 = API.recorder.finalize("disk full test", false)
+env.writefile = orig_writefile
+check("macro still registered when the disk refuses", m4 ~= nil, tostring(e4))
+check("entry flagged memory only", m4 and API.store.entry_of(m4.id).memory_only == true)
+check("still loadable this session", m4 and API.store.load_macro(m4.id) ~= nil)
+check("save note mentions memory", tostring(e4):find("memory") ~= nil, e4)
+
+print("\n[index rebuild from disk]")
+local orphan = {
+    id = "orphan-test", name = "orphan", created = os.time(), duration = 1,
+    ctx = { mode = "Classic", difficulty = "Easy", speed = 1, map = "Dojo", loadout = { "Corn" } },
+    steps = { { kind = "down", wave = 1, dt = 0.1, t_abs = 0.1, x = 1, y = 1, itype = "Touch" } },
+}
+files["ANON_GTD/macros/orphan-test.json"] = json_encode(orphan)
+API.store.init()
+local oe = API.store.entry_of("orphan-test")
+check("orphan macro recovered into the index", oe ~= nil, oe and oe.recovered)
+check("recovered entry keeps its context stamp", oe ~= nil and oe.mode == "Classic" and oe.map == "Dojo",
+    oe and (tostring(oe.mode) .. "/" .. tostring(oe.map)))
+check("recovered macro is loadable", API.store.load_macro("orphan-test") ~= nil)
+local diag_text, counts = API.store.diagnose()
+check("diagnose reports files, entries, memory-only",
+    counts.files >= 2 and counts.entries >= 2 and counts.memory_only >= 1, json_encode(counts))
+print("  " .. diag_text:gsub("\n", "\n  "))
+
 print("\n=====================================")
 print(string.format("FAILURES: %d", failures))
 print("=====================================")

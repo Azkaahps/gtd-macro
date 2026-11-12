@@ -49,7 +49,7 @@ local unpack = table.unpack or unpack
 --==============================================================================
 
 local CONFIG = {
-    version        = "1.0.1",
+    version        = "1.0.2",
     root_dir       = "ANON_GTD",
     place_whitelist= { [108533757090220] = "Garden Tower Defense", [123516946198836] = "Garden Tower Defense (2)" },
 
@@ -75,6 +75,10 @@ local CONFIG = {
     notify         = true,
     max_steps      = 8000,
     scan_labels    = true,
+    -- while recording, fold the panel down to the mini bar: on a phone the open
+    -- panel covers a big part of the screen and those taps are correctly ignored,
+    -- which on a small screen means "recorded nothing at all"
+    auto_collapse_on_record = true,
 }
 
 --==============================================================================
@@ -308,11 +312,18 @@ function FS.write(path, data)
     return true
 end
 
+-- always the in-memory copy, used as a last resort when the disk write fails
+function FS.write_mem(path, data)
+    MEM.files[path] = data
+    return true
+end
+
 function FS.read(path)
     if FS.available then
         local ok, data = pcall(function() return readfile(path) end)
-        if ok then return data end
-        return nil
+        if ok and data ~= nil then return data end
+        -- a macro that only ever reached memory must still be loadable this session
+        return MEM.files[path]
     end
     return MEM.files[path]
 end
@@ -361,6 +372,69 @@ STORE.profilepath = CONFIG.root_dir .. "/profile.json"
 STORE.index   = {}
 STORE.profile = { tap_offset_x = 0, tap_offset_y = 0, wave_path = nil, wave_src = nil, container_path = nil, enemy_path = nil, remote_path = nil, overrides = {} }
 
+-- If the index was lost but macro files are on disk, rebuild it from them: a save
+-- that reached the disk must never be invisible just because index.json failed.
+function STORE.rebuild_index()
+    if not FS.available then return 0 end
+    local files = FS.list(STORE.dir)
+    local added = 0
+    local seen = {}
+    for _, e in ipairs(STORE.index.entries) do seen[e.id] = true end
+    local scanned = 0
+    for _, path in ipairs(files) do
+        local id = string.match(path, "([^/\\]+)%.json$")
+        if id and not seen[id] and scanned < 200 then
+            scanned = scanned + 1
+            local raw = FS.read(path)
+            local m = raw and U.json_decode(raw)
+            if type(m) == "table" and type(m.steps) == "table" then
+                local ctx = m.ctx or {}
+                table.insert(STORE.index.entries, {
+                    id = id,
+                    name = m.name or id,
+                    pinned = m.pinned and true or false,
+                    created = m.created or 0,
+                    steps = #m.steps,
+                    duration = m.duration,
+                    mode = ctx.mode,
+                    difficulty = ctx.difficulty,
+                    map = ctx.map,
+                    map_sig = ctx.map_sig,
+                    speed = ctx.speed,
+                    wave_total = ctx.wave_total,
+                    units = ctx.loadout,
+                    place_id = ctx.place_id,
+                    recovered = true,
+                })
+                seen[id] = true
+                added = added + 1
+            end
+        end
+    end
+    if added > 0 then STORE.save_index() end
+    return added
+end
+
+function STORE.diagnose()
+    local entries = (STORE.index and STORE.index.entries) or {}
+    local macro_files = 0
+    for _, p in ipairs(FS.list(STORE.dir)) do
+        if string.find(p, "%.json$") then macro_files = macro_files + 1 end
+    end
+    local mem_only = 0
+    for _, e in ipairs(entries) do
+        if e.memory_only then mem_only = mem_only + 1 end
+    end
+    local lines = {
+        "file api     : " .. (FS.available and "yes" or "NO - macros live only for this session"),
+        "folder       : " .. STORE.dir,
+        "files on disk: " .. tostring(macro_files),
+        "index entries: " .. tostring(#entries) .. (mem_only > 0 and (" (" .. tostring(mem_only) .. " memory only)") or ""),
+        "profile      : " .. STORE.profilepath,
+    }
+    return table.concat(lines, "\n"), { files = macro_files, entries = #entries, memory_only = mem_only }
+end
+
 function STORE.init()
     FS.ensure(CONFIG.root_dir)
     FS.ensure(STORE.dir)
@@ -381,6 +455,10 @@ function STORE.init()
     end
     CONFIG.tap_offset_x = STORE.profile.tap_offset_x or 0
     CONFIG.tap_offset_y = STORE.profile.tap_offset_y or 0
+
+    -- anything on disk that the index does not know about (lost or half-written
+    -- index.json) gets picked back up here
+    STORE.recovered = STORE.rebuild_index()
 end
 
 function STORE.save_index()
@@ -407,7 +485,15 @@ end
 function STORE.save_macro(macro)
     local raw = U.json_encode(macro)
     if not raw then return false, "json encode failed" end
-    if not FS.write(STORE.macro_path(macro.id), raw) then return false, "write failed" end
+
+    local wrote = FS.write(STORE.macro_path(macro.id), raw)
+    local memory_only = false
+    if not wrote then
+        -- the disk refused it: keep it in memory anyway so the recording is visible,
+        -- playable and exportable instead of vanishing without a trace
+        FS.write_mem(STORE.macro_path(macro.id), raw)
+        memory_only = true
+    end
 
     local entry = STORE.entry_of(macro.id)
     if not entry then
@@ -427,8 +513,9 @@ function STORE.save_macro(macro)
     entry.wave_total = macro.ctx.wave_total
     entry.units      = macro.ctx.loadout
     entry.place_id   = macro.ctx.place_id
+    entry.memory_only = memory_only
     STORE.save_index()
-    return true
+    return true, memory_only and "memory only (disk write failed)" or nil
 end
 
 function STORE.load_macro(id)
@@ -501,6 +588,7 @@ local UI_API = {
     toast          = function() end,
     live_step      = function() end,
     refresh_macros = function() end,
+    collapse       = function() end,
 }
 
 -- "game.Workspace.Folder.Model" -> Instance  (case tolerant, dup tolerant)
@@ -1441,6 +1529,11 @@ local function push_step(step)
     step.dt = S.wave_t0 and (U.now() - S.wave_t0) or nil
     step.t_abs = U.now() - S.rec_start
     table.insert(S.steps, step)
+    if S.counters then
+        S.counters.recorded = S.counters.recorded + 1
+        if step.kind == "move" then S.counters.moves = S.counters.moves + 1 end
+        if step.kind == "key" then S.counters.keys = S.counters.keys + 1 end
+    end
     if UI_API and UI_API.live_step then UI_API.live_step(step, #S.steps) end
 end
 
@@ -1489,7 +1582,12 @@ local function on_began(input, gp)
     local ut = input.UserInputType
     local x, y = input.Position.X, input.Position.Y
 
-    if own_gui_hit(x, y) then return end
+    if S.counters then S.counters.began = S.counters.began + 1 end
+
+    if own_gui_hit(x, y) then
+        if S.counters then S.counters.own_ui = S.counters.own_ui + 1 end
+        return
+    end
 
     if ut == Enum.UserInputType.Touch
         or ut == Enum.UserInputType.MouseButton1
@@ -1534,11 +1632,15 @@ local function on_ended(input, gp)
     if not S.recording then return end
     local ut = input.UserInputType
     local x, y = input.Position.X, input.Position.Y
+    if S.counters then S.counters.ended = S.counters.ended + 1 end
 
     if ut == Enum.UserInputType.Touch
         or ut == Enum.UserInputType.MouseButton1
         or ut == Enum.UserInputType.MouseButton2 then
-        if own_gui_hit(x, y) then return end
+        if own_gui_hit(x, y) then
+            if S.counters then S.counters.own_ui = S.counters.own_ui + 1 end
+            return
+        end
         local step = {
             kind = "up",
             x = x, y = y,
@@ -1619,6 +1721,11 @@ function REC.start()
     S.ctx.start_wave = ctx.wave_cur
     S.ctx.loadout, S.ctx.loadout_src = PROBE.loadout()
 
+    -- counters so a "recorded but nothing showed up" report can be answered with
+    -- numbers instead of guesses
+    S.counters = { began = 0, own_ui = 0, recorded = 0, moves = 0, keys = 0, ended = 0 }
+    REC.last_report = nil
+
     rec_conns = {}
     table.insert(rec_conns, UIS.InputBegan:Connect(on_began))
     table.insert(rec_conns, UIS.InputChanged:Connect(on_changed))
@@ -1634,9 +1741,21 @@ function REC.start()
     end
 
     U.notify("ANON GTD", "Recording · " .. tostring(ctx.mode or "?") .. " · " .. tostring(ctx.difficulty or "?")
-        .. " · " .. tostring(ctx.map_label or "?") .. " · x" .. tostring(ctx.speed or "?"))
+        .. " · " .. tostring(ctx.map_label or "?") .. " · x" .. tostring(ctx.speed or "?")
+        .. " · tap STOP (top-left) when done", 8)
+
+    -- fold the panel away: on a phone it covers a big part of the screen and those
+    -- taps are deliberately not recorded
+    if CONFIG.auto_collapse_on_record and UI_API.collapse then
+        pcall(UI_API.collapse)
+    end
+
     if UI_API and UI_API.status then UI_API.status() end
     return true
+end
+
+function REC.counters()
+    return S.counters or {}
 end
 
 function REC.finalize(name, pinned)
@@ -1644,7 +1763,21 @@ function REC.finalize(name, pinned)
     rec_conns = {}
     S.recording = false
 
-    if #S.steps == 0 then return nil, "no steps recorded" end
+    if #S.steps == 0 then
+        local c = S.counters or {}
+        local why
+        if (c.own_ui or 0) > 0 then
+            why = "the panel was in the way — those taps are ignored on purpose; keep it collapsed (STOP pill only) and tap the game"
+        elseif (c.began or 0) == 0 then
+            why = "input never reached the listener (executor attached to the wrong client?)"
+        else
+            why = "taps were seen but nothing was usable"
+        end
+        local reason = string.format("nothing recorded · taps seen %d · skipped over our panel %d · %s",
+            c.began or 0, c.own_ui or 0, why)
+        REC.last_report = reason
+        return nil, reason
+    end
 
     local macro = {
         id       = STORE.new_id(),
@@ -1682,9 +1815,19 @@ function REC.finalize(name, pinned)
     end
 
     local ok, err = STORE.save_macro(macro)
+    local c = S.counters or {}
+    local diag = STORE.diagnose()
+    local storage = ok and (err or "disk") or ("FAILED: " .. tostring(err))
+    local report = string.format(
+        "%s · %d steps (moves %d, keys %d) · taps seen %d · skipped over panel %d · storage %s · %s",
+        tostring(macro.name), #macro.steps, c.moves or 0, c.keys or 0,
+        c.began or 0, c.own_ui or 0, storage, (diag:gsub("\n", " · ")))
+    REC.last_report = report
+
     if not ok then return nil, err end
-    U.notify("ANON GTD", "Saved: " .. macro.name .. " (" .. #macro.steps .. " steps)")
-    return macro
+    U.notify("ANON GTD", "Saved: " .. tostring(macro.name) .. " (" .. #macro.steps .. " steps)"
+        .. (err and (" · " .. tostring(err)) or ""), 6)
+    return macro, err, report
 end
 
 function REC.discard()
@@ -2358,7 +2501,14 @@ PIN_REC_BTN = mk_button(REC_PAGE, "pin on save: OFF", UDim2.new(0, 150, 0, 26), 
     PIN_REC_BTN.TextColor3 = U.fix_contrast(PIN_TOGGLE.pinned and C.accent or C.dim, C.panel2)
 end)
 
-local LIVE_FRAME, _ = mk_scroll(REC_PAGE, UDim2.new(0, 0, 0, 190), 120)
+-- what happened on the last save / why a save failed, in plain words
+local REC_LAST = mk_label(REC_PAGE, "", 10, C.warn, 0)
+REC_LAST.Size = UDim2.new(1, 0, 0, 44)
+REC_LAST.Position = UDim2.new(0, 0, 0, 190)
+REC_LAST.TextYAlignment = Enum.TextYAlignment.Top
+REC_LAST.TextWrapped = true
+
+local LIVE_FRAME, _ = mk_scroll(REC_PAGE, UDim2.new(0, 0, 0, 236), 74)
 local live_rows = {}
 local function live_add(step, index)
     if #live_rows > 11 then
@@ -2530,7 +2680,8 @@ function UI.refresh_macros()
             }, macro_list)
             apply_round(row, 6)
 
-            local title = mk_label(row, (e.pinned and "★ " or "") .. tostring(e.name or "?"), 13,
+            local title = mk_label(row, (e.pinned and "★ " or "") .. tostring(e.name or "?")
+                .. (e.memory_only and "  [MEMORY ONLY]" or (e.recovered and "  [recovered]" or "")), 13,
                 e.pinned and C.accent or C.text, 2)
             title.Position = UDim2.new(0, 8, 0, 4)
             title.Size = UDim2.new(1, -150, 0, 16)
@@ -2566,9 +2717,15 @@ function UI.refresh_macros()
     end
 
     if shown == 0 then
-        mk_label(macro_list, STORE.index and #STORE.index.entries == 0
-            and "no macros yet — record one on the RECORD tab"
-            or "nothing matches the filter", 12, C.dim, 6)
+        local diag = STORE.diagnose()
+        local head = "no macros yet — record one on the RECORD tab"
+        if STORE.index and #STORE.index.entries > 0 then
+            head = "nothing matches the filter"
+        end
+        local l = mk_label(macro_list, head .. "\n" .. diag, 10, C.dim, 6)
+        l.Size = UDim2.new(1, 0, 0, 76)
+        l.TextYAlignment = Enum.TextYAlignment.Top
+        l.TextWrapped = true
     end
 end
 
@@ -2646,6 +2803,14 @@ local function run_discovery()
     setup_line("== WORKSPACE FINGERPRINT (first 8) ==", C.accent)
     for i = 1, math.min(#extra.sig_parts, 8) do
         setup_line("  " .. extra.sig_parts[i])
+    end
+
+    setup_line("")
+    setup_line("== STORE ==", C.accent)
+    local diag = STORE.diagnose()
+    for line in string.gmatch(diag, "[^\n]+") do setup_line(line) end
+    if (STORE.recovered or 0) > 0 then
+        setup_line("recovered from disk: " .. tostring(STORE.recovered), C.accent)
     end
 
     local lines = {}
@@ -2726,11 +2891,13 @@ mk_button(SET_PAGE, "MARK WAVE NOW", UDim2.new(0, 130, 0, 28), UDim2.new(0, 0, 0
     U.notify("ANON GTD", "wave " .. tostring(w) .. " anchored as T0")
 end)
 mk_button(SET_PAGE, "CALIBRATE TAP", UDim2.new(0, 120, 0, 28), UDim2.new(0, 136, 0, 34), C.warn, calibrate)
-mk_button(SET_PAGE, "DROP MACROS", UDim2.new(0, 110, 0, 28), UDim2.new(0, 262, 0, 34), C.danger, function()
-    U.notify("ANON GTD", "macros kept: " .. tostring(#STORE.index.entries) .. " in " .. STORE.dir)
+mk_button(SET_PAGE, "RESCAN DISK", UDim2.new(0, 110, 0, 28), UDim2.new(0, 262, 0, 34), C.danger, function()
+    local added = STORE.rebuild_index()
+    UI.refresh_macros()
+    run_discovery()
+    U.notify("ANON GTD", "index rescan: " .. tostring(added) .. " recovered, "
+        .. tostring(#STORE.index.entries) .. " total", 6)
 end)
-
-mk_button(SET_PAGE, "CALIBRATE TAP", UDim2.new(0, 120, 0, 28), UDim2.new(0, 136, 0, 34), C.warn, calibrate)
 
 -- manual overrides: type "mode=Impossible" style lines into this box and apply
 local OVR_BOX = mk_box(SET_PAGE, "override e.g. mode=Impossible  speed=3  map=Dojo   (comma separated)",
@@ -2863,6 +3030,12 @@ notify_btn = cfg_row("notifications", CONFIG.notify and "ON" or "OFF", function(
     notify_btn.Text = CONFIG.notify and "ON" or "OFF"
 end)
 
+local autocollapse_btn
+autocollapse_btn = cfg_row("auto-collapse on record", CONFIG.auto_collapse_on_record and "ON" or "OFF", function()
+    CONFIG.auto_collapse_on_record = not CONFIG.auto_collapse_on_record
+    autocollapse_btn.Text = CONFIG.auto_collapse_on_record and "ON" or "OFF"
+end)
+
 cfg_row("store backend", FS.available and "file API" or "memory", function()
     U.notify("ANON GTD", FS.available
         and ("macros live in " .. STORE.dir)
@@ -2892,6 +3065,7 @@ end)
 
 function UI.status()
     local txt
+    REC_LAST.Text = REC.last_report or ""
     if S.recording then
         local ctx = S.ctx or {}
         rec_status.Text = string.format("REC ●  %s  steps %d  wave %s",
@@ -3020,8 +3194,12 @@ end
 
 UI_API.status = UI.status
 UI_API.toast = UI.toast
+UI_API.collapse = function() return UI.collapse() end
 UI_API.live_step = function(step, index)
     if step.kind ~= "move" then live_add(step, index) end
+    if S.recording then
+        MINI.Text = "ANON ● REC " .. tostring(index) .. "  ▲"
+    end
 end
 UI_API.refresh_macros = UI.refresh_macros
 
