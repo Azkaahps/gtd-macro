@@ -1,0 +1,205 @@
+### PASS A: bare executor (no hookmetamethod)
+boot ok, api keys: yes
+
+[context]
+  mode=Classic diff=Impossible speed=3 waves=3/25 map_sig=567738033 seeds=1250 cd=7
+  PASS  mode detected
+  PASS  difficulty detected
+  PASS  speed detected
+  PASS  wave counter parsed
+  PASS  countdown parsed
+  PASS  map signature non nil
+
+[remotes] top: RoundStartedEvent score=5
+  PASS  remote scan found candidates
+  PASS  wave-ish remote scored highest
+  PASS  loadout scan runs
+  loadout src: nil
+  PASS  workspace parts listed
+
+[recording]
+  PASS  REC.start()
+  PASS  steps recorded
+  PASS  macro finalized
+  steps=9 duration=2.34 ctx=Classic/Impossible speed=x3 start_wave=3
+  PASS  macro stamped with speed
+  PASS  macro stamped with map label
+  PASS  down step carries world point
+  PASS  step carries wave + dt
+
+[store]
+  PASS  index has the macro
+  PASS  index entry pinned
+  PASS  macro loads back
+  PASS  unpin persists
+  PASS  rename persists
+  PASS  macro json non trivial
+
+[playback]
+  PASS  compat silent on same context
+  PASS  PLAY.run accepted
+  PASS  sim input happened
+  stats: steps=9/9 late=9 missed=0 verified=0 failed=0 timeouts=0 skipped=0
+  PASS  playback finished
+  PASS  no steps were skipped on a clean run
+  PASS  no wave timeouts on a clean run
+  mismatches now: mode Classic -> Survival | speed x3 -> x1 | wave total 25 -> 40
+  PASS  mismatch detected on mode/speed/waves
+  PASS  speed-mode block would refuse
+  PASS  speed scale = rec/now
+
+[ui]
+  PASS  ui contains_point callable
+  PASS  state exported to genv
+  PASS  setup tab code paths
+
+[wave anchor]
+  PASS  pinned wave path resolves
+  PASS  watcher follows the wave counter
+  PASS  T0 recorded on wave change
+  PASS  anchor playback accepted
+  PASS  nothing taps before its dt
+  PASS  key step fired on its dt
+  PASS  touch still not fired at 0.80s
+  PASS  touch pair fired after its dt
+  PASS  mouse still not fired at 1.80s
+  PASS  mouse pair fired on its own dt
+  PASS  no late dispatches
+  PASS  no missed waves
+  PASS  anchor playback finished
+
+[wave align]
+  PASS  counter is behind the macro start
+  PASS  holds while the round is behind
+  PASS  still playing while holding
+  PASS  fires once the round catches up
+  PASS  align run finished
+
+[wave timeout skip]
+  PASS  nothing tapped for the missing wave
+  PASS  steps counted as skipped
+  PASS  timeouts counted
+  PASS  run ended after skipping
+
+[placement verify]
+  PASS  unit container resolves
+  PASS  counter synced for the place test
+  PASS  placement verified when the unit lands
+  PASS  unit actually added
+  PASS  placement marked failed when nothing lands
+
+[durability]
+  PASS  index survives with context columns
+  PASS  profile written to disk
+  PASS  macro json files on disk
+
+=====================================
+FAILURES: 0
+=====================================
+
+### PASS B: executor WITH hookmetamethod (spy path)
+== harness variant: executor WITH hookmetamethod (remote spy path) ==
+boot ok, api keys: yes
+
+[context]
+  mode=Classic diff=Impossible speed=3 waves=3/25 map_sig=567738033 seeds=1250 cd=7
+  PASS  mode detected
+  PASS  difficulty detected
+  PASS  speed detected
+  PASS  wave counter parsed
+  PASS  countdown parsed
+  PASS  map signature non nil
+
+[remotes] top: RoundStartedEvent score=5
+  PASS  remote scan found candidates
+  PASS  wave-ish remote scored highest
+  PASS  loadout scan runs
+  loadout src: nil
+  PASS  workspace parts listed
+
+[recording]
+  PASS  REC.start()
+  PASS  steps recorded
+  PASS  macro finalized
+  steps=9 duration=2.34 ctx=Classic/Impossible speed=x3 start_wave=3
+  PASS  macro stamped with speed
+  PASS  macro stamped with map label
+  PASS  down step carries world point
+  PASS  step carries wave + dt
+
+[store]
+  PASS  index has the macro
+  PASS  index entry pinned
+  PASS  macro loads back
+  PASS  unpin persists
+  PASS  rename persists
+  PASS  macro json non trivial
+
+[playback]
+  PASS  compat silent on same context
+  PASS  PLAY.run accepted
+  PASS  sim input happened
+  stats: steps=9/9 late=9 missed=0 verified=0 failed=0 timeouts=0 skipped=0
+  PASS  playback finished
+  PASS  no steps were skipped on a clean run
+  PASS  no wave timeouts on a clean run
+  mismatches now: mode Classic -> Survival | speed x3 -> x1 | wave total 25 -> 40
+  PASS  mismatch detected on mode/speed/waves
+  PASS  speed-mode block would refuse
+  PASS  speed scale = rec/now
+
+[ui]
+  PASS  ui contains_point callable
+  PASS  state exported to genv
+  PASS  setup tab code paths
+
+[wave anchor]
+  PASS  pinned wave path resolves
+  PASS  watcher follows the wave counter
+  PASS  T0 recorded on wave change
+  PASS  anchor playback accepted
+  PASS  nothing taps before its dt
+  PASS  key step fired on its dt
+  PASS  touch still not fired at 0.80s
+  PASS  touch pair fired after its dt
+  PASS  mouse still not fired at 1.80s
+  PASS  mouse pair fired on its own dt
+  PASS  no late dispatches
+  PASS  no missed waves
+  PASS  anchor playback finished
+
+[wave align]
+  PASS  counter is behind the macro start
+  PASS  holds while the round is behind
+  PASS  still playing while holding
+  PASS  fires once the round catches up
+  PASS  align run finished
+
+[wave timeout skip]
+  PASS  nothing tapped for the missing wave
+  PASS  steps counted as skipped
+  PASS  timeouts counted
+  PASS  run ended after skipping
+
+[placement verify]
+  PASS  unit container resolves
+  PASS  counter synced for the place test
+  PASS  placement verified when the unit lands
+  PASS  unit actually added
+  PASS  placement marked failed when nothing lands
+
+[durability]
+  PASS  index survives with context columns
+  PASS  profile written to disk
+  PASS  macro json files on disk
+
+[remote spy]
+  PASS  spy reported available
+  PASS  remote instance present
+  PASS  fire logged by the hook
+  PASS  args preview captured
+  sample: wave, 4, true
+
+=====================================
+FAILURES: 0
+=====================================
