@@ -1019,6 +1019,90 @@ if WITH_SPY then
     if entry then print("  sample: " .. tostring(entry.samples[1])) end
 end
 
+--==============================================================================
+-- 12. ui: collapse + restore, and the colour contrast audit
+--==============================================================================
+
+print("\n[ui collapse]")
+local ui = API.ui
+check("ui handles exported", ui.root ~= nil and ui.main ~= nil and ui.mini ~= nil)
+check("mini bar lives in the screen gui, not in the panel", ui.mini.Parent == ui.root)
+
+local min_btn, close_btn
+for _, d in ipairs(ui.root:GetDescendants()) do
+    if d.ClassName == "TextButton" then
+        if d.Text == "—" then min_btn = d end
+        if d.Text == "x" then close_btn = d end
+    end
+end
+check("minimize button found", min_btn ~= nil)
+check("close button found", close_btn ~= nil)
+
+if min_btn then
+    min_btn.MouseButton1Click:Fire()
+    check("panel collapses to the mini bar", ui.main.Visible == false and ui.mini.Visible == true,
+        string.format("main=%s mini=%s", tostring(ui.main.Visible), tostring(ui.mini.Visible)))
+    ui.mini.MouseButton1Click:Fire()
+    check("mini bar brings the panel back", ui.main.Visible == true and ui.mini.Visible == false,
+        string.format("main=%s mini=%s", tostring(ui.main.Visible), tostring(ui.mini.Visible)))
+end
+if close_btn then
+    close_btn.MouseButton1Click:Fire()
+    check("close collapses, never kills the ui", ui.main.Visible == false and ui.mini.Visible == true
+        and ui.root.Enabled ~= false, string.format("main=%s mini=%s enabled=%s",
+        tostring(ui.main.Visible), tostring(ui.mini.Visible), tostring(ui.root.Enabled)))
+    ui.mini.MouseButton1Click:Fire()
+    check("restored after close", ui.main.Visible == true)
+end
+
+-- our own widgets must swallow taps so the recorder never records them
+ui.collapse()
+ui.mini.AbsolutePosition = Vector2.new(24, 90)
+ui.mini.AbsoluteSize = Vector2.new(140, 26)
+check("mini bar counts as our own ui (collapsed)", ui.contains_point(30, 95) == true)
+ui.mini.MouseButton1Click:Fire()
+ui.main.AbsolutePosition = Vector2.new(24, 90)
+ui.main.AbsoluteSize = Vector2.new(400, 366)
+check("open panel counts as our own ui", ui.contains_point(200, 200) == true)
+check("empty space is not our ui", ui.contains_point(2, 2) == false)
+
+print("\n[contrast]")
+local function report(list, tag)
+    for _, o in ipairs(list) do
+        print(string.format("   %s  %.2f:1  %q  visible=%s", tag, o.ratio, o.text, tostring(o.visible)))
+    end
+end
+
+local boot_bad = ui.audit_contrast()
+report(boot_bad, "low")
+check("no low contrast text at boot", #boot_bad == 0, #boot_bad)
+
+-- every button that only flips a value: press each one and re-audit the whole tree
+local SAFE_LABELS = {
+    ["scale"] = true, ["block"] = true, ["auto"] = true, ["ui"] = true, ["touch"] = true,
+    ["mouse"] = true, ["ON"] = true, ["OFF"] = true, ["0"] = true, ["1"] = true, ["2"] = true,
+    ["4"] = true, ["5"] = true, ["25"] = true, ["inf"] = true, ["1.5s"] = true, ["0.8s"] = true,
+    ["2.5s"] = true, ["4.0s"] = true, ["20s"] = true, ["45s"] = true, ["90s"] = true,
+    ["180s"] = true, ["0ms"] = true, ["10ms"] = true, ["25ms"] = true, ["50ms"] = true,
+    ["file API"] = true, ["memory"] = true,
+    ["pinned only: ON"] = true, ["pinned only: OFF"] = true,
+    ["pin on save: ON"] = true, ["pin on save: OFF"] = true,
+}
+
+local clicked, offenders = 0, {}
+for _, entry in ipairs(ui.buttons or {}) do
+    if SAFE_LABELS[entry.text] then
+        pcall(function() entry.obj.MouseButton1Click:Fire() end)
+        clicked = clicked + 1
+        for _, o in ipairs(ui.audit_contrast()) do
+            offenders[#offenders + 1] = o
+        end
+    end
+end
+check("flipped config buttons", clicked >= 8, clicked)
+report(offenders, "low")
+check("no low contrast text after flipping every toggle", #offenders == 0, #offenders)
+
 print("\n=====================================")
 print(string.format("FAILURES: %d", failures))
 print("=====================================")

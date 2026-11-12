@@ -236,6 +236,45 @@ function U.spawn(fn, ...)
 end
 
 --==============================================================================
+-- COLOUR CONTRAST
+-- WCAG relative luminance. Nothing in this UI is allowed to draw text in a colour
+-- that is close to its own background. ui.audit_contrast() is the self test.
+--==============================================================================
+
+local INK   = Color3.fromRGB(14, 15, 18)     -- matches C.bg, near black
+local PAPER = Color3.fromRGB(232, 234, 238)  -- matches C.text, near white
+
+local function srgb_channel(v)
+    v = v / 255
+    if v <= 0.03928 then return v / 12.92 end
+    return ((v + 0.055) / 1.055) ^ 2.4
+end
+
+function U.lum(col)
+    return 0.2126 * srgb_channel(col.R) + 0.7152 * srgb_channel(col.G) + 0.0722 * srgb_channel(col.B)
+end
+
+function U.contrast(a, b)
+    local la, lb = U.lum(a), U.lum(b)
+    local hi = math.max(la, lb)
+    local lo = math.min(la, lb)
+    return (hi + 0.05) / (lo + 0.05)
+end
+
+-- the legible colour for a given background (whatever contrasts best)
+function U.on_color(bg)
+    if U.contrast(PAPER, bg) >= U.contrast(INK, bg) then return PAPER end
+    return INK
+end
+
+-- keep the intended colour when it is readable, otherwise swap it for a legible one
+function U.fix_contrast(text_col, bg, min_ratio)
+    if not bg then return text_col or PAPER end
+    if text_col and U.contrast(text_col, bg) >= (min_ratio or 4.0) then return text_col end
+    return U.on_color(bg)
+end
+
+--==============================================================================
 -- FILE STORE
 --==============================================================================
 
@@ -1987,7 +2026,7 @@ local function mk_label(parent, text, size, color, y)
     return new("TextLabel", {
         BackgroundTransparency = 1,
         Text = text or "",
-        TextColor3 = color or C.text,
+        TextColor3 = U.fix_contrast(color or C.text, C.bg),
         TextSize = size or 13,
         Font = Enum.Font.Gotham,
         TextXAlignment = Enum.TextXAlignment.Left,
@@ -1998,19 +2037,22 @@ local function mk_label(parent, text, size, color, y)
     }, parent)
 end
 
-local function mk_button(parent, text, size, pos, color, cb)
+local function mk_button(parent, text, size, pos, color, cb, bg_color)
+    local bg = bg_color or C.panel2
     local b = new("TextButton", {
         Text = text,
-        TextColor3 = color or C.text,
+        TextColor3 = U.fix_contrast(color or C.text, bg),
         TextSize = 13,
         Font = Enum.Font.GothamMedium,
-        BackgroundColor3 = C.panel2,
+        BackgroundColor3 = bg,
         AutoButtonColor = true,
         Size = size,
         Position = pos,
         TextTruncate = Enum.TextTruncate.AtEnd,
     }, parent)
     apply_round(b, 6)
+    UI.buttons = UI.buttons or {}
+    table.insert(UI.buttons, { obj = b, text = text })
     if cb then
         b.MouseButton1Click:Connect(function()
             local ok, err = pcall(cb)
@@ -2109,14 +2151,37 @@ HEAD_VER.Position = UDim2.new(1, -104, 0, 0)
 HEAD_VER.Size = UDim2.new(0, 40, 0, 14)
 HEAD_VER.TextXAlignment = Enum.TextXAlignment.Right
 
-local MIN_BTN = mk_button(HEAD, "—", UDim2.new(0, 26, 0, 22), UDim2.new(1, -60, 0, 5), C.dim, function()
-    MANUAL_HIDE = MAIN.Visible
-    MAIN.Visible = not MAIN.Visible
+-- collapsed state: a small bar that never disappears with the panel, so the panel
+-- can always be brought back on a phone (the minimize button lives inside the panel)
+local MINI = new("TextButton", {
+    Name = "MiniBar",
+    Size = UDim2.new(0, 140, 0, 26),
+    Position = UDim2.new(0, 24, 0, 90),
+    BackgroundColor3 = C.panel,
+    TextColor3 = U.fix_contrast(C.accent, C.panel),
+    TextSize = 12,
+    Font = Enum.Font.GothamMedium,
+    Text = "ANON · GTD  ▲",
+    Visible = false,
+    ZIndex = 15,
+}, ROOT)
+apply_round(MINI, 13)
+MINI.MouseButton1Click:Connect(function()
+    MANUAL_HIDE = false
+    MINI.Visible = false
+    MAIN.Visible = true
+    UI.status()
 end)
-local CLOSE_BTN = mk_button(HEAD, "x", UDim2.new(0, 22, 0, 22), UDim2.new(1, -30, 0, 5), C.danger, function()
-    ROOT.Enabled = false
-    U.notify("ANON GTD", "GUI hidden. Re-run the loadstring to bring it back.")
-end)
+
+local function collapse_panel()
+    MANUAL_HIDE = true
+    MAIN.Visible = false
+    MINI.Visible = not S.playing
+    MINI.Text = S.recording and ("ANON ● REC " .. tostring(REC.step_count()) .. "  ▲") or "ANON · GTD  ▲"
+end
+
+local MIN_BTN = mk_button(HEAD, "—", UDim2.new(0, 26, 0, 22), UDim2.new(1, -60, 0, 5), C.dim, collapse_panel)
+local CLOSE_BTN = mk_button(HEAD, "x", UDim2.new(0, 22, 0, 22), UDim2.new(1, -30, 0, 5), C.danger, collapse_panel)
 
 -- drag
 do
@@ -2264,7 +2329,7 @@ local NAME_BOX = mk_box(REC_PAGE, "macro name (optional)", UDim2.new(1, 0, 0, 30
 
 local PIN_TOGGLE = { pinned = false }
 
-local REC_BTN = mk_button(REC_PAGE, "● START RECORDING", UDim2.new(0, 190, 0, 40), UDim2.new(0, 0, 0, 74), C.accent, function()
+local REC_BTN = mk_button(REC_PAGE, "● START RECORDING", UDim2.new(0, 190, 0, 40), UDim2.new(0, 0, 0, 74), C.bg, function()
     if S.recording then
         local m, err = REC.finalize(NAME_BOX.Text ~= "" and NAME_BOX.Text or nil, PIN_TOGGLE.pinned)
         if not m then
@@ -2277,8 +2342,8 @@ local REC_BTN = mk_button(REC_PAGE, "● START RECORDING", UDim2.new(0, 190, 0, 
     end
     UI.refresh_macros()
     UI.status()
-end)
-REC_BTN.TextColor3 = C.bg
+end, C.accent)
+REC_BTN.TextColor3 = U.fix_contrast(C.bg, C.accent)
 
 local DISCARD_BTN = mk_button(REC_PAGE, "DISCARD", UDim2.new(0, 90, 0, 40), UDim2.new(0, 200, 0, 74), C.danger, function()
     REC.discard()
@@ -2290,7 +2355,7 @@ local PIN_REC_BTN
 PIN_REC_BTN = mk_button(REC_PAGE, "pin on save: OFF", UDim2.new(0, 150, 0, 26), UDim2.new(0, 0, 0, 158), C.dim, function()
     PIN_TOGGLE.pinned = not PIN_TOGGLE.pinned
     PIN_REC_BTN.Text = "pin on save: " .. (PIN_TOGGLE.pinned and "ON" or "OFF")
-    PIN_REC_BTN.TextColor3 = PIN_TOGGLE.pinned and C.accent or C.dim
+    PIN_REC_BTN.TextColor3 = U.fix_contrast(PIN_TOGGLE.pinned and C.accent or C.dim, C.panel2)
 end)
 
 local LIVE_FRAME, _ = mk_scroll(REC_PAGE, UDim2.new(0, 0, 0, 190), 120)
@@ -2318,7 +2383,7 @@ local PIN_FILTER = { on = false }
 local PIN_FILTER_BTN = mk_button(MAC_PAGE, "pinned only: OFF", UDim2.new(0, 120, 0, 28), UDim2.new(0, 226, 0, 0), C.dim, function()
     PIN_FILTER.on = not PIN_FILTER.on
     PIN_FILTER_BTN.Text = "pinned only: " .. (PIN_FILTER.on and "ON" or "OFF")
-    PIN_FILTER_BTN.TextColor3 = PIN_FILTER.on and C.accent or C.dim
+    PIN_FILTER_BTN.TextColor3 = U.fix_contrast(PIN_FILTER.on and C.accent or C.dim, C.panel2)
     UI.refresh_macros()
 end)
 local REFRESH_BTN = mk_button(MAC_PAGE, "refresh", UDim2.new(0, 62, 0, 28), UDim2.new(1, -62, 0, 0), C.dim, function()
@@ -2632,8 +2697,7 @@ local function calibrate()
     end)
 end
 
-local DISC_BTN = mk_button(SET_PAGE, "RUN DISCOVERY", UDim2.new(0, 118, 0, 28), UDim2.new(0, 0, 0, 0), C.accent, run_discovery)
-DISC_BTN.TextColor3 = C.bg
+local DISC_BTN = mk_button(SET_PAGE, "RUN DISCOVERY", UDim2.new(0, 118, 0, 28), UDim2.new(0, 0, 0, 0), C.bg, run_discovery, C.accent)
 mk_button(SET_PAGE, "COPY REPORT", UDim2.new(0, 106, 0, 28), UDim2.new(0, 124, 0, 0), C.text, function()
     if type(setclipboard) == "function" then
         pcall(setclipboard, last_report)
@@ -2702,8 +2766,7 @@ local function cfg_row(text, btn_text, cb)
     }, cfg_scroll)
     apply_round(row, 6)
     mk_label(row, text, 12, C.text, 7).Size = UDim2.new(1, -130, 0, 16)
-    local b = mk_button(row, btn_text, UDim2.new(0, 118, 0, 24), UDim2.new(1, -124, 0, 3), C.accent, cb)
-    b.TextColor3 = C.bg
+    local b = mk_button(row, btn_text, UDim2.new(0, 118, 0, 24), UDim2.new(1, -124, 0, 3), C.bg, cb, C.accent)
     return b
 end
 
@@ -2731,8 +2794,10 @@ end)
 local speed_btn
 speed_btn = cfg_row("speed mismatch", CONFIG.speed_mode, function()
     CONFIG.speed_mode = (CONFIG.speed_mode == "scale") and "block" or "scale"
+    local blk = CONFIG.speed_mode == "block"
     speed_btn.Text = CONFIG.speed_mode
-    speed_btn.TextColor3 = (CONFIG.speed_mode == "block") and C.warn or C.bg
+    speed_btn.BackgroundColor3 = blk and C.warn or C.accent
+    speed_btn.TextColor3 = U.fix_contrast(C.bg, speed_btn.BackgroundColor3)
 end)
 
 local click_btn
@@ -2842,7 +2907,11 @@ function UI.status()
         rec_hint.Text = (S.wave_t0 == nil) and "waiting for a wave anchor — start recording before or during a wave" or ""
         REC_BTN.Text = "■ STOP & SAVE"
         REC_BTN.BackgroundColor3 = C.danger
+        REC_BTN.TextColor3 = U.fix_contrast(C.bg, C.danger)
         PILL.Visible = true
+        MINI.Text = "ANON ● REC " .. tostring(REC.step_count()) .. "  ▲"
+        MINI.Visible = MANUAL_HIDE
+        if not MANUAL_HIDE then MAIN.Visible = true end
         txt = "recording"
     elseif S.playing then
         local st = S.stat or {}
@@ -2851,7 +2920,9 @@ function UI.status()
             tostring(st.late), tostring(st.missed), tostring(st.verified), tostring(st.failed))
         REC_BTN.Text = "● START RECORDING"
         REC_BTN.BackgroundColor3 = C.accent
+        REC_BTN.TextColor3 = U.fix_contrast(C.bg, C.accent)
         PILL.Visible = true
+        MINI.Visible = false
         -- keep the panel out of the way of the replayed taps
         MAIN.Visible = false
     else
@@ -2860,8 +2931,11 @@ function UI.status()
         rec_hint.Text = ""
         REC_BTN.Text = "● START RECORDING"
         REC_BTN.BackgroundColor3 = C.accent
+        REC_BTN.TextColor3 = U.fix_contrast(C.bg, C.accent)
         PILL.Visible = false
-        if not MANUAL_HIDE then MAIN.Visible = true end
+        MINI.Text = "ANON · GTD  ▲"
+        MINI.Visible = MANUAL_HIDE
+        MAIN.Visible = not MANUAL_HIDE
         txt = string.format("idle · %s · x%s · %s",
             tostring((S.last_ctx and S.last_ctx.mode) or "?"),
             tostring((S.last_ctx and S.last_ctx.speed) or "?"),
@@ -2871,9 +2945,10 @@ function UI.status()
 end
 
 UI_API.contains_point = function(x, y)
-    if not ROOT.Enabled then return false end
+    if ROOT.Enabled == false then return false end
     local checks = {}
     if MAIN.Visible then checks[#checks + 1] = MAIN end
+    if MINI.Visible then checks[#checks + 1] = MINI end
     if PILL.Visible then checks[#checks + 1] = PILL end
     if TOAST.Visible then checks[#checks + 1] = TOAST end
     if CALIB.frame then checks[#checks + 1] = CALIB.frame end
@@ -2894,6 +2969,53 @@ UI_API.contains_point = function(x, y)
         end
     end
     return false
+end
+
+-- exposed handles (console control + tests)
+UI.root        = ROOT
+UI.main        = MAIN
+UI.mini        = MINI
+UI.pill        = PILL
+UI.toast_label = TOAST
+UI.pages       = PAGES
+UI.tabs        = TAB_BUTTONS
+UI.collapse    = collapse_panel
+UI.contains_point = function(x, y) return UI_API.contains_point(x, y) end
+
+-- Contrast self test: returns every text that is not legible on its own background.
+-- console: print(#getgenv().ANON_GTD.ui.audit_contrast())
+function UI.audit_contrast(min_ratio)
+    min_ratio = min_ratio or 3.9
+    local bad = {}
+    local function effective_bg(inst)
+        local node = inst
+        while node do
+            local ok, bg, bt = pcall(function() return node.BackgroundColor3, node.BackgroundTransparency end)
+            if ok and bg and (bt or 0) < 0.5 then return bg end
+            node = node.Parent
+        end
+        return C.bg
+    end
+    local ok, list = pcall(function() return ROOT:GetDescendants() end)
+    if ok and list then
+        for _, d in ipairs(list) do
+            local cls = d.ClassName
+            if cls == "TextLabel" or cls == "TextButton" or cls == "TextBox" then
+                local okp, txt, fg, tt = pcall(function() return d.Text, d.TextColor3, d.TextTransparency end)
+                if okp and txt and txt ~= "" and fg and (tt or 0) < 0.9 then
+                    local bg = effective_bg(d)
+                    local ratio = U.contrast(fg, bg)
+                    if ratio < min_ratio then
+                        bad[#bad + 1] = {
+                            text = txt, ratio = ratio, path = d:GetFullName(),
+                            visible = d.Visible and true or false,
+                        }
+                    end
+                end
+            end
+        end
+    end
+    return bad
 end
 
 UI_API.status = UI.status

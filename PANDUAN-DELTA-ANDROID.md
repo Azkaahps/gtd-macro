@@ -32,11 +32,11 @@ Sisanya di bawah ini: kenapa, apa yang bisa bikin gagal di HP, dan apa yang haru
 ### 1.1 Delta Executor
 | Hal | Keterangan |
 |---|---|
-Sumber | situs resmi Delta (APK). Jangan dari link random di YouTube/Discord — varian bajakan sering ada tambahan iklan/malware. |
-Android | 8.0 atau lebih baru; RAM 3 GB disarankan biar Roblox + Delta gak saling bunuh |
-Izinkan install | Pengaturan → aplikasi → **Install unknown apps** untuk browser/file manager lu |
-Roblox | harus sudah terpasang dari Play Store (versi normal, bukan versi mod) |
-Attach | Delta punya tombol **Attach / Inject / Launch**. Tekan itu, tunggu sampai statusnya jelas "attached" — kalau gagal, tutup Roblox, tutup Delta, ulangi. |
+| Sumber | situs resmi Delta (APK). Jangan dari link random di YouTube/Discord — varian bajakan sering ada tambahan iklan/malware. |
+| Android | 8.0 atau lebih baru; RAM 3 GB disarankan biar Roblox + Delta gak saling bunuh |
+| Izinkan install | Pengaturan → aplikasi → **Install unknown apps** untuk browser/file manager lu |
+| Roblox | harus sudah terpasang dari Play Store (versi normal, bukan versi mod) |
+| Attach | Delta punya tombol **Attach / Inject / Launch**. Tekan itu, tunggu sampai statusnya jelas "attached" — kalau gagal, tutup Roblox, tutup Delta, ulangi. |
 
 ### 1.2 Baterai & RAM (ini penyebab nomor satu macro putus di tengah jalan)
 Android produksi HP (Xiaomi, Oppo, Vivo, Realme, Huawei, Samsung) agresif membunuh proses background:
@@ -75,10 +75,10 @@ Selama **record** dan **playback**:
 ### Kalau gagal execute
 | Pesan / gejala | Artinya | Aksi |
 |---|---|---|
-`attempt to call a nil value (global 'HttpGet')` | executor lu gak punya `game:HttpGet` | pakai executor lain; tanpa HttpGet, loadstring dari web mustahil |
-`could not fetch Main.lua` | URL salah, repo di-private, atau internet mati | cek repo masih public; atau langsung paste isi `Main.lua` ke kotak script |
-`compile error: ...` | payload ke-truncate / ketahan halaman proxy WiFi | jalankan ulang (loader bakal pakai mirror/cache); kalau wifi kantor/sekolah suka nge-blokir, pakai data seluler |
-Gak ada toast & panel | script gak kejalan sama sekali | inject ulang; cek Delta diizinkan "no restrictions" |
+| `attempt to call a nil value (global 'HttpGet')` | executor lu gak punya `game:HttpGet` | pakai executor lain; tanpa HttpGet, loadstring dari web mustahil |
+| `could not fetch Main.lua` | URL salah, repo di-private, atau internet mati | cek repo masih public; atau langsung paste isi `Main.lua` ke kotak script |
+| `compile error: ...` | payload ke-truncate / ketahan halaman proxy WiFi | jalankan ulang (loader bakal pakai mirror/cache); kalau wifi kantor/sekolah suka nge-blokir, pakai data seluler |
+| Gak ada toast & panel | script gak kejalan sama sekali | inject ulang; cek Delta diizinkan "no restrictions" |
 
 ---
 
@@ -86,10 +86,11 @@ Gak ada toast & panel | script gak kejalan sama sekali | inject ulang; cek Delta
 
 Panel muncul di kiri atas, ukuran 400 × 366 px. Di HP layar kecil:
 - **Geser panel**: tahan **header**-nya (bar judul), geser pakai jari.
-- **Sembunyikan panel**: tombol **—** di kanan atas header. Munculkan lagi: tap **—** lagi.
-- **Tutup total**: tombol **x** (kanan atas). Munculin lagi: execute ulang script.
-- **Saat playback panel sembunyi sendiri** dan yang tersisa cuma pill merah **STOP** di kiri atas — ini
-  sengaja, biar tap hasil replay gak ketahan UI kita sendiri. Pill-nya kecil; taruh Delta-nya di sisi lain.
+- **Ringkas panel**: tombol **—** (atau **x**, dua-duanya sama sekarang). Panel mengecil jadi bar kecil
+  **`ANON · GTD ▲`** di kiri atas. Tap bar itu buat balikin panelnya. Saat merekam bar-nya nunjukin
+  **`ANON ● REC <jumlah step> ▲`**, jadi lu tetap tahu rekaman jalan walau panelnya disembunyiin.
+- **Saat playback panel sembunyi sendiri** dan yang tersisa cuma pill merah **STOP** — sengaja, biar tap hasil
+  replay gak ketahan UI kita sendiri. Pill-nya kecil; taruh Delta-nya di sisi lain layar.
 
 Tabnya cuma empat: **RECORD · MACROS · SETUP · CONFIG**. Status bar tipis di paling bawah panel nunjukin apa
 yang sedang terjadi (`idle`, `recording`, atau `PLAY ▶ step n/N …`).
@@ -106,15 +107,15 @@ Yang gue cari di report-nya:
 
 | Baris | Bagus | Kalau salah |
 |---|---|---|
-`mode` | `Classic` / `Survival` / `Dojo` | override: `mode=Dojo` |
-`difficulty` | `Easy`/`Normal`/`Hard`/`Impossible` | override: `difficulty=Impossible` |
-`map` | nama map atau `map#123456789` | override: `map=<nama di game>` |
-`speed` | `1` / `2` / `3` | override: `speed=3` |
-`waves` | `3 / 25` (angka asli) | kalau `nil / nil` → 4.2b |
-`countdown` | angka dekat wave | gak fatal |
-`loadout` | unit equip lu / `none detected` | gak fatal, cuma buat warning |
-`wave label` | path panjang | 4.2 |
-`touch sim` | `available` | kalau `unavailable`, klik lewat mouse — biasanya tetap kena |
+| `mode` | `Classic` / `Survival` / `Dojo` | override: `mode=Dojo` |
+| `difficulty` | `Easy`/`Normal`/`Hard`/`Impossible` | override: `difficulty=Impossible` |
+| `map` | nama map atau `map#123456789` | override: `map=<nama di game>` |
+| `speed` | `1` / `2` / `3` | override: `speed=3` |
+| `waves` | `3 / 25` (angka asli) | kalau `nil / nil` → 4.2b |
+| `countdown` | angka dekat wave | gak fatal |
+| `loadout` | unit equip lu / `none detected` | gak fatal, cuma buat warning |
+| `wave label` | path panjang | 4.2 |
+| `touch sim` | `available` | kalau `unavailable`, klik lewat mouse — biasanya tetap kena |
 
 ### 4.2a Kalau `waves` kebaca → tekan **PIN ANCHOR**
 Discovery lagi, pastikan path-nya muncul di baris `ANCHORS > wave label`. Selesai — anchor kekunci permanen.
@@ -175,11 +176,11 @@ Di tab **MACROS** setiap baris nunjukin stempelnya — itu yang bikin lu bisa be
 
 | Tombol | Fungsi |
 |---|---|
-`GO` | putar |
-`PIN` | tandai penting → otomatis naik ke urutan paling atas |
-`NM` | ganti nama |
-`EXP` | export jadi string base64 (otomatis ke clipboard kalau executor lu punya `setclipboard`; Delta punya) — buat backup / pindah HP |
-`DEL` | hapus (ada konfirmasi) |
+| `GO` | putar |
+| `PIN` | tandai penting → otomatis naik ke urutan paling atas |
+| `NM` | ganti nama |
+| `EXP` | export jadi string base64 (otomatis ke clipboard kalau executor lu punya `setclipboard`; Delta punya) — buat backup / pindah HP |
+| `DEL` | hapus (ada konfirmasi) |
 
 Kotak **filter** buat nyari berdasarkan nama/mode/map, dan tombol **pinned only** buat nyembunyiin sisanya.
 Import hasil export: tab **CONFIG → import macro (base64)** → paste → Enter.
@@ -200,6 +201,12 @@ Cara lihat/pindahin: pakai file manager bawaan Delta (kalau ada), atau dari cons
 ```lua
 print(table.concat(listfiles("ANON_GTD/macros"), "\n"))
 print(readfile("ANON_GTD/profile.json"))
+print(#getgenv().ANON_GTD.ui.audit_contrast())   -- 0 = semua tulisan kebaca (kontras)
+```
+Console lain yang kepakai:
+```lua
+getgenv().ANON_GTD.ui.collapse()                 -- ringkas panel ke bar kecil
+getgenv().ANON_GTD.ui.main.Visible = true        -- buka panel lagi
 ```
 Kalau executor lu gak punya `writefile`, kamu bakal lihat toast `no file api (session only)` — macro tetap
 jalan tapi hilang begitu keluar game. Saran: export (base64) macro penting sebelum keluar.
@@ -208,26 +215,28 @@ jalan tapi hilang begitu keluar game. Saran: export (base64) macro penting sebel
 
 | Aksi | Cara |
 |---|---|
-Hapus satu macro | MACROS → `DEL` |
-Lihat jumlah macro | SETUP → tombol **DROP MACROS** (nampilin jumlah + folder) |
-Update script ke versi baru | **execute ulang baris loadstring-nya** — Loader ambil versi terbaru, gak perlu paste Main.lua |
-Paksa gak pakai cache | tambahkan `?v=` (udah otomatis dilakukan loader) atau hapus `ANON_GTD/Main.lua` |
-Bersihin total | keluar game → hapus folder `ANON_GTD` dari file manager Delta |
+| Hapus satu macro | MACROS → `DEL` |
+| Lihat jumlah macro | SETUP → tombol **DROP MACROS** (nampilin jumlah + folder) |
+| Update script ke versi baru | **execute ulang baris loadstring-nya** — Loader ambil versi terbaru, gak perlu paste Main.lua |
+| Paksa gak pakai cache | tambahkan `?v=` (udah otomatis dilakukan loader) atau hapus `ANON_GTD/Main.lua` |
+| Bersihin total | keluar game → hapus folder `ANON_GTD` dari file manager Delta |
 
 ## 10. Kalau ada yang aneh
 
 | Gejala di HP | Penyebab paling sering | Aksi |
 |---|---|---|
-Panel gak muncul | script gagal jalan, atau UI lama masih nyangkut | execute ulang; kalau masih, rejoin server |
-Panel ketutup notch/status bar | posisi awal panel kegeser | geser panel dari header-nya |
-Tap replay gak ngefek di tombol game | game cuma nanggepin event `Activated` | CONFIG → `click method: ui` → GO lagi |
-Unit mendarat di tile sebelah | kamera muter/map beda | pastikan kamera sama posisinya; coba CONFIG → `follow world point: OFF` |
-Semua aksi nyembur sekaligus | counter wave gak kebaca → mode waktu absolut | SETUP → PIN ANCHOR / MARK WAVE NOW |
-Gak ada aksi sama sekali | counter nunjukin ronde beda dari start macro | lihat `wave W` di status bar |
-`late` naik terus | HP ngelag / layar ke-lock / ada app lain makan RAM | grafis ke 1–2, DND on, charge sambil jalan |
-Proses Delta mati sendiri di tengah | battery manager OEM | izin "no restrictions" + autostart |
-Layar HP mati → macro berhenti | screen timeout | set timeout lama / matikan lock |
-Notifikasi nyempil → tap nyasar | popup masuk | mode DND |
+| Panel gak muncul | script gagal jalan, atau UI lama masih nyangkut | execute ulang; kalau masih, rejoin server |
+| Panel ketutup notch/status bar | posisi awal panel kegeser | geser panel dari header-nya |
+| Panel kekecilan / ke-minimize dan gak ketemu cara balikinnya | — | tap bar kecil **`ANON · GTD ▲`** di kiri atas (sejak v1.0.1 tombol **—** dan **x** sama-sama cuma meringkas, gak pernah bikin panel hilang permanen) |
+| Ada tulisan yang nyatu sama background | kontras | jalankan `print(#getgenv().ANON_GTD.ui.audit_contrast())` — kalau hasilnya bukan 0, kirim daftarnya ke gue |
+| Tap replay gak ngefek di tombol game | game cuma nanggepin event `Activated` | CONFIG → `click method: ui` → GO lagi |
+| Unit mendarat di tile sebelah | kamera muter/map beda | pastikan kamera sama posisinya; coba CONFIG → `follow world point: OFF` |
+| Semua aksi nyembur sekaligus | counter wave gak kebaca → mode waktu absolut | SETUP → PIN ANCHOR / MARK WAVE NOW |
+| Gak ada aksi sama sekali | counter nunjukin ronde beda dari start macro | lihat `wave W` di status bar |
+| `late` naik terus | HP ngelag / layar ke-lock / ada app lain makan RAM | grafis ke 1–2, DND on, charge sambil jalan |
+| Proses Delta mati sendiri di tengah | battery manager OEM | izin "no restrictions" + autostart |
+| Layar HP mati → macro berhenti | screen timeout | set timeout lama / matikan lock |
+| Notifikasi nyempil → tap nyasar | popup masuk | mode DND |
 
 ## 11. Yang gue butuh kalau ada masalah
 

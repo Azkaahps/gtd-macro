@@ -141,9 +141,9 @@ ANON_GTD/
 `VirtualInputManager`, virtual clock + scheduler) and drives the real `Main.lua`:
 
 ```
-luajit tools/mock_harness.lua        # bare executor  — 65 checks, 0 failures
-luajit tools/mock_harness.lua spy    # with hookmetamethod — +4 spy checks, 0 failures
-luajit tools/dist_check.lua          # live github raw + jsDelivr — 17 checks, 0 failures
+luajit tools/mock_harness.lua        # bare executor  — 79 checks, 0 failures
+luajit tools/mock_harness.lua spy    # with hookmetamethod — 83 checks, 0 failures
+luajit tools/dist_check.lua          # live github raw + jsDelivr — 14 checks, 0 failures
 ```
 
 Covered: context detection (mode/difficulty/speed/waves/countdown/seeds/map_sig/loadout), remote scan,
