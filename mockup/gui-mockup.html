@@ -22,11 +22,32 @@
 
   /* ───────── phone ───────── */
   .phone{
-    width:392px; height:792px; background:var(--bg); border:1px solid #24272E;
-    border-radius:26px; overflow:hidden; position:relative;
+    width:392px; height:792px; background:#0A0B0E; border:1px solid #24272E;
+    border-radius:26px; overflow:hidden; position:relative; flex:none;
     box-shadow:0 24px 60px rgba(0,0,0,.55);
-    display:flex; flex-direction:column;
   }
+  .game{position:absolute; inset:0;
+    background:radial-gradient(120% 80% at 20% 0%, #16241E 0%, #0B0D11 55%, #08090C 100%);}
+  .game .hud{position:absolute;font-size:10px;color:#5E6B63;letter-spacing:.4px}
+  .game .hud.a{left:14px;top:30px}
+  .game .hud.b{right:14px;top:30px;text-align:right}
+  .game .hud.c{left:14px;bottom:14px}
+  .game .blob{position:absolute;border-radius:14px;background:rgba(90,200,160,.05);border:1px solid rgba(90,200,160,.08)}
+  .game .blob.b1{left:24px;bottom:64px;width:120px;height:76px}
+  .game .blob.b2{right:26px;bottom:112px;width:90px;height:90px}
+  .game .blob.b3{left:140px;top:290px;width:140px;height:58px}
+  .panel{
+    position:absolute; left:10px; top:10px; right:10px; bottom:10px;
+    background:var(--bg); border:1px solid #262A31; border-radius:18px;
+    display:flex; flex-direction:column; overflow:hidden;
+    box-shadow:0 18px 40px rgba(0,0,0,.6);
+    transition:left .18s ease, top .18s ease, right .18s ease, bottom .18s ease, border-radius .18s;
+  }
+  .phone.sheet .panel{left:0;top:0;right:0;bottom:0;border-radius:0;border-color:transparent;box-shadow:none}
+  .engine{display:flex;align-items:center;gap:6px;font-size:10px;color:#8FA79C;
+    background:rgba(90,200,160,.06);border:1px solid rgba(90,200,160,.14);
+    border-radius:8px;padding:6px 8px;margin-bottom:8px}
+  .engine b{color:var(--accent);font-weight:700}
   .statusbar{
     height:22px; display:flex; align-items:center; justify-content:space-between;
     padding:0 16px; font-size:10px; color:var(--dim); background:#0A0B0E; flex:none;
@@ -46,6 +67,7 @@
     display:flex;align-items:center;justify-content:center;cursor:pointer;
   }
   .hbtn.close{color:var(--danger)}
+  .hbtn.act{color:var(--accent); border-color:rgba(90,200,160,.35)}
 
   /* live strip (our addition) */
   .live{
@@ -172,6 +194,11 @@
   .yes{color:var(--accent);font-weight:700}
   .no{color:#7A828E}
   .new{color:var(--warn);font-weight:700}
+  .del{color:#F08A8A;font-weight:700}
+  .dec{display:flex;gap:7px;align-items:flex-start;margin:5px 0;font-size:11px;color:#C2C9D3;line-height:1.55}
+  .dec i{flex:none;width:16px;height:16px;border-radius:5px;background:rgba(90,200,160,.16);
+    border:1px solid rgba(90,200,160,.35);color:var(--accent);font-size:9px;font-style:normal;
+    display:flex;align-items:center;justify-content:center;margin-top:1px}
   .note{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;
         font-size:11.5px;color:#B7BEC9;line-height:1.65;margin-top:10px}
   .note b{color:#E6EAEF}
@@ -182,13 +209,22 @@
 <div class="wrap">
 
   <!-- ═══════════ PHONE ═══════════ -->
-  <div class="phone">
+  <div class="phone" id="phone">
+    <div class="game">
+      <div class="hud a">WAVE 7 / 25 · 00:41</div>
+      <div class="hud b">SEEDS 12,480</div>
+      <div class="hud c">x3 SPEED</div>
+      <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
+    </div>
+
+    <div class="panel">
     <div class="statusbar"><span>9:41</span><span>GTD · 4G · 82%</span><span><b>ANON</b></span></div>
 
     <div class="head">
-      <span class="brand">ANON · GTD</span><span class="ver">v1.1.0</span>
+      <span class="brand">ANON · GTD</span><span class="ver">v1.2.0</span>
       <span class="spacer"></span>
-      <div class="hbtn" title="ringkas">—</div>
+      <div class="hbtn" id="foldBtn" title="ringkas ke bar">—</div>
+      <div class="hbtn act" id="expandBtn" title="panel ⇄ layar penuh">⤢</div>
       <div class="hbtn close" title="sembunyikan">×</div>
     </div>
 
@@ -315,10 +351,11 @@ profile      : ANON_GTD/profile.json</div>
 
       <!-- ── MATCH ── -->
       <div class="page" id="p-match">
+        <div class="engine"><b>engine:</b> replay input macro — tidak menembak remote game</div>
         <div class="sec">Match</div>
         <div class="card">
           <div class="ctl"><div class="lbl">Auto Skip Cutscene</div><div class="sw" onclick="tg(this)"></div></div>
-          <div class="ctl"><div class="lbl">Auto Skip Wave</div><div class="sw" onclick="tg(this)"></div></div>
+          <div class="ctl"><div class="lbl">Auto Skip Wave<small>menekan tombol skip di layar game (input), bukan remote</small></div><div class="sw" onclick="tg(this)"></div></div>
           <div class="ctl"><div class="lbl">Auto 2x Speed</div><div class="sw" onclick="tg(this)"></div></div>
           <div class="ctl"><div class="lbl">Auto 3x Speed</div><div class="sw" onclick="tg(this)"></div></div>
           <div class="ctl"><div class="lbl">Auto Ability</div><div class="sw" onclick="tg(this)"></div></div>
@@ -340,6 +377,7 @@ profile      : ANON_GTD/profile.json</div>
 
       <!-- ── AUTO MODE ── -->
       <div class="page" id="p-auto">
+        <div class="engine"><b>engine:</b> macro terpilih + replay input · tanpa remote</div>
         <div class="sec">Lobby</div>
         <div class="card">
           <div class="ctl"><div class="lbl">Difficulty</div><div class="inp" style="width:150px">Impossible ▾</div></div>
@@ -369,10 +407,10 @@ profile      : ANON_GTD/profile.json</div>
         </div>
         <div class="sec">Humanizer<span class="chip">STABIL</span></div>
         <div class="card">
-          <div class="ctl"><div class="lbl">Position jitter<small>tap tidak identik sampai pixel</small></div>
-            <div class="slider"><input type="range" min="0" max="4" value="2" oninput="this.nextElementSibling.textContent=this.value+'px'"><span class="val">2px</span></div></div>
-          <div class="ctl"><div class="lbl">Time jitter<small>delay tidak frame-perfect</small></div>
-            <div class="slider"><input type="range" min="0" max="50" value="10" oninput="this.nextElementSibling.textContent=this.value+'ms'"><span class="val">10ms</span></div></div>
+          <div class="ctl"><div class="lbl">Position jitter<small>default baru: 4 px — tap tidak identik sampai pixel</small></div>
+            <div class="slider"><input type="range" min="0" max="6" value="4" oninput="this.nextElementSibling.textContent=this.value+'px'"><span class="val">4px</span></div></div>
+          <div class="ctl"><div class="lbl">Time jitter<small>default baru: 25 ms — delay tidak frame-perfect</small></div>
+            <div class="slider"><input type="range" min="0" max="60" value="25" oninput="this.nextElementSibling.textContent=this.value+'ms'"><span class="val">25ms</span></div></div>
           <div class="ctl"><div class="lbl">Random pause tiap N loop</div><div class="sw on" onclick="tg(this)"></div></div>
         </div>
         <div class="sec">Lobby Return</div>
@@ -408,17 +446,14 @@ profile      : ANON_GTD/profile.json</div>
             <div class="slider"><input type="range" min="10" max="240" value="30" oninput="this.nextElementSibling.textContent=this.value+' mnt'"><span class="val">30 mnt</span></div></div>
           <div class="btnrow" style="margin-top:8px"><div class="btn">Kirim Ringkasan Sekarang</div></div>
         </div>
-        <div class="sec">Dashboard API</div>
+        <div class="sec">Keamanan</div>
         <div class="card">
-          <div class="ctl"><div class="lbl">API Key</div><div class="inp" style="width:140px">secret key</div></div>
-          <div class="ctl"><div class="lbl">Heartbeat Interval</div>
-            <div class="slider"><input type="range" min="10" max="120" value="30" oninput="this.nextElementSibling.textContent=this.value+'s'"><span class="val">30s</span></div></div>
-          <div class="ctl"><div class="lbl">Enable Telemetry<small>default MATI — statistik tidak dikirim ke siapa pun</small></div><div class="sw" onclick="tg(this)"></div></div>
-          <div class="btnrow" style="margin-top:8px"><div class="btn">Test Send</div></div>
+          <div class="engine" style="margin:0"><b>telemetry dibuang.</b> tidak ada API key, tidak ada heartbeat, tidak ada data yang dikirim ke server pihak ketiga. satu-satunya yang keluar: webhook Discord milik lu sendiri.</div>
         </div>
       </div>
 
     </div>
+    </div><!-- /panel -->
 
     <div class="mini-bar" id="miniBar">ANON ● REC <span id="miniN">0</span> ▲</div>
     <div class="stop-pill" id="stopPill">■ STOP</div>
@@ -426,13 +461,18 @@ profile      : ANON_GTD/profile.json</div>
 
   <!-- ═══════════ SIDE ═══════════ -->
   <div class="side">
-    <h1>Mockup GUI — <span>ANON GTD</span> v1.1.0</h1>
+    <h1>Mockup GUI v2 — <span>ANON GTD</span> v1.2.0</h1>
     <p class="lead">
-      Menu & fitur disamakan dengan <b>Ard Hub v2.5.5</b> (5 tab: Match · Auto Mode · Macro · Anti Ban · Webhook,
-      isi section dan label persis). Bedanya di titik berat: tab <b>Macro</b> dibuka pertama dan diisi mesin
-      recorder yang stabil, sementara kontrol farm tetap ada sebagai menu — bukan sebagai mesin utama.
-      Klik tab / toggle / slider di kiri, dan tekan <b>RECORD</b> buat lihat state rekaman.
+      Klik tab / toggle / slider di kiri. Tombol <b>⤢</b> di header buat lihat dua mode shell:
+      panel mengambang di atas gameplay ⇄ layar penuh. Tombol <b>—</b> meringkas jadi bar.
+      Tekan <b>RECORD</b> buat lihat state rekaman.
     </p>
+
+    <h2>Keputusan yang sudah masuk mockup ini</h2>
+    <div class="dec"><i>1</i><div><b>Farm pakai replay input.</b> Tab Match &amp; Auto Mode tidak menembak remote — Skip Wave menekan tombol skip di layar, Auto Ability menekan skill, semuanya lewat jalur input yang sama dengan recorder. Ada bar “engine:” di atas tiap tab.</div></div>
+    <div class="dec"><i>2</i><div><b>Telemetry &amp; Dashboard API dibuang total.</b> Section “Dashboard API” hilang; tab Webhook tinggal Discord webhook + Target + Ringkasan, plus kartu “Keamanan” yang menyatakan itu eksplisit.</div></div>
+    <div class="dec"><i>3</i><div><b>Panel mengambang + expand ke sheet.</b> Default: panel di atas gameplay (bisa diringkas jadi bar). Tombol ⤢ bikin dia edge-to-edge buat menu banyak.</div></div>
+    <div class="dec"><i>4</i><div><b>Humanizer default 4 px / 25 ms.</b> Slider dinaikin (posisi 0–6 px, waktu 0–60 ms) dengan nilai default baru.</div></div>
 
     <h2>Paritas menu dengan Ard Hub</h2>
     <table>
@@ -449,7 +489,7 @@ profile      : ANON_GTD/profile.json</div>
       <tr><td class="n">Webhook · Discord Webhook</td><td>Link, Test, On Match End, User ID, 2 tag toggle</td><td class="yes">sama</td></tr>
       <tr><td class="n">Webhook · Target</td><td>Target seeds/currency, tag target, Test Tag</td><td class="yes">sama</td></tr>
       <tr><td class="n">Webhook · Ringkasan</td><td>Kirim Ringkasan, Interval, Kirim Sekarang</td><td class="yes">sama</td></tr>
-      <tr><td class="n">Webhook · Dashboard API</td><td>API Key, Heartbeat, Test Send, Enable Telemetry</td><td class="yes">sama</td></tr>
+      <tr><td class="n">Webhook · Dashboard API</td><td>API Key · Heartbeat · Test Send · Enable Telemetry</td><td class="del">dibuang</td></tr>
     </table>
 
     <h2>Yang kita tambah (titik berat: recorder stabil)</h2>
@@ -464,12 +504,14 @@ profile      : ANON_GTD/profile.json</div>
     </table>
 
     <div class="note">
-      <b>Catatan jujur soal paritas:</b> menu & label disamakan, tapi <i>mesin</i>-nya beda.
-      Ard Hub menembak remote (<span class="kbd">PlaceUnit</span>, <span class="kbd">SkipWave</span>, <span class="kbd">ChangeTickSpeed</span>)
-      supaya bisa farming otomatis. Kalau kita ikut itu, “recorder yang stabil” jadi tidak relevan — dan
-      permukaan deteksinya jauh lebih lebar. Usulan: menu tetap sama, tapi aksi farm (Auto Mode, Skip Wave, Speed)
-      dijalankan lewat <b>replay input</b> macro kita, bukan remote. Tinggal lu putuskan boleh atau tidak.
-    </div>
+      <b>Rencana implementasi (Luau, Instance-based):</b> UI-nya gue tulis ulang jadi builder deklaratif
+      (<span class="kbd">section</span> / <span class="kbd">toggle</span> / <span class="kbd">slider</span> /
+      <span class="kbd">input</span> / <span class="kbd">dropdown</span> / <span class="kbd">button</span>),
+      tiap tab cuma array definisi. Mesin yang sudah jalan (recorder, replay, history, diagnostics, anchors)
+      dipindah tanpa diubah perilakunya, lalu tiga modul baru: <b>tap-actions</b> (skip wave / ability / difficulty
+      lewat tap terverifikasi), <b>webhook</b> (POST ke URL Discord lu, butuh <span class="kbd">request</span> di
+      executor), dan <b>loops / auto-return</b>. Semua tetap di belakang harness yang sama — check harus hijau
+      sebelum gue push.</div>
   </div>
 </div>
 
@@ -485,6 +527,15 @@ profile      : ANON_GTD/profile.json</div>
       document.getElementById('scroller').scrollTop = 0;
     };
   });
+
+  var phone = document.getElementById('phone');
+  document.getElementById('expandBtn').onclick = function(){
+    phone.classList.toggle('sheet');
+    this.classList.toggle('act');
+  };
+  document.getElementById('foldBtn').onclick = function(){
+    document.getElementById('miniBar').classList.toggle('show');
+  };
 
   var rec = false, t0 = 0, steps = 0, timer = null;
   var btn = document.getElementById('recBtn');
