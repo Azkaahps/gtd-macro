@@ -49,7 +49,7 @@ local unpack = table.unpack or unpack
 --==============================================================================
 
 local CONFIG = {
-    version        = "1.0.0",
+    version        = "1.0.1",
     root_dir       = "ANON_GTD",
     place_whitelist= { [108533757090220] = "Garden Tower Defense", [123516946198836] = "Garden Tower Defense (2)" },
 
@@ -3087,7 +3087,8 @@ if not place_ok then
     U.notify("ANON GTD", "this place (" .. tostring(game.PlaceId) .. ") is not on the whitelist — features may not map", 8)
 end
 
-U.notify("ANON GTD", "loaded · " .. (FS.available and "file api ok" or "no file api (session only)")
+U.notify("ANON GTD", "v" .. CONFIG.version .. " loaded · "
+    .. (FS.available and "file api ok" or "no file api (session only)")
     .. " · " .. (CAP.touch and "touch sim ok" or "mouse sim only"), 6)
 
 return API

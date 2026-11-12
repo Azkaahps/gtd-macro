@@ -18,6 +18,7 @@ Change the mode or the speed and it tells you before it wastes your seeds.
 | `Main.lua` | the whole script (~2900 lines): probe, recorder, player, UI, store. |
 | `tools/mock_harness.lua` | offline test harness — mocked Roblox surface, runs the full boot→record→save→play chain. |
 | `tools/dist_check.lua` | proves the loadstring path: fetches the live raw + jsDelivr payloads, diffs them byte for byte against local, compiles them like the loader does. |
+| `tools/loader_check.lua` | drives the real Loader.lua against a mocked executor: fresh/stale/missing source, block pages, wrong game, broken payloads. |
 | `README.md` | this. |
 | `PANDUAN-DELTA-ANDROID.md` | panduan pemakaian lengkap di HP Android + Delta (bahasa Indonesia). |
 
@@ -141,6 +142,7 @@ ANON_GTD/
 `VirtualInputManager`, virtual clock + scheduler) and drives the real `Main.lua`:
 
 ```
+luajit tools/loader_check.lua        # loader freshness + fallbacks — 22 checks, 0 failures
 luajit tools/mock_harness.lua        # bare executor  — 79 checks, 0 failures
 luajit tools/mock_harness.lua spy    # with hookmetamethod — 83 checks, 0 failures
 luajit tools/dist_check.lua          # live github raw + jsDelivr — 14 checks, 0 failures
